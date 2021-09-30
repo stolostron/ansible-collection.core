@@ -1,0 +1,3 @@
+# Ansible Collection - community.openclustermanagement
+
+An Ansible Collection for use with the [open-cluster-management-io](https://github.com/open-cluster-management-io) and [open-custer-management-plus](https://github.com/open-cluster-management) projects, as well as the [Red Hat Advanced Cluster Management for Kubernetes Product](https://www.redhat.com/en/technologies/management/advanced-cluster-management) and MultiCluster Engine.  
