@@ -1,0 +1,7 @@
+---
+- hosts: localhost
+  remote_user: root
+  environment:
+    K8S_AUTH_KUBECONFIG: ~/.kube/kubeconfig
+  roles:
+    - role: ../../ocm-install
