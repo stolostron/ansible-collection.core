@@ -6,4 +6,5 @@
   roles:
     - role: ../../ocm-attach
       vars:
-        ocm_managedcluster_name: replaceme.clustername
+        ocm_managedcluster_name: valid-cluster-name
+        ocm_hub_kubeconfig: /path/to/hub_kubeconfig

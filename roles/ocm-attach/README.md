@@ -1,20 +1,19 @@
-Role Name
-=========
+ocm-attach
+==========
 
-Installs Red Hat Advanced Cluster Management Operator with the option to install the Observability feature.
+Attaches a managed cluster with an existing hub cluster.
+
 
 Requirements
 ------------
 
-The hosting cluster must be able to connect to an Operator Catalog that contains Red Hat Advanced Cluster Management as well as the image registries to support it. Disconnected installs are possible by overriding the ocm_install_catalog* variables.
-
-If observability will be installed, an S3 object store needs to be accessible from the hosting cluster.
+The controller must be able to communicate with both the hub and managed cluster.
 
 
 Environment Variables
 ---------------------
 
-Environment variables provide the credentials needed by the kubernetes.core collection to connect to the cluster.
+Environment variables provide the credentials needed by the kubernetes.core collection to connect to the cluster. These variables refer to the managed cluster, ie, the cluster being attached to the hub.
 
 * Option 1, use kubeconfig. Preferred.
 * Option 2, use access token.
@@ -30,20 +29,16 @@ Environment variables provide the credentials needed by the kubernetes.core coll
 | K8S_AUTH_USERNAME       | yes, Option 3      |                                    | Username for a cluster-admin             |
 | K8S_AUTH_PASSWORD       | yes, Option 3      |                                    | Password for a cluster-admin             |
 
+
 Role Variables
 --------------
 
 | Variable                | Required           | Default                            | Comments                                 |
 |-------------------------|--------------------|------------------------------------|------------------------------------------|
-| ocm_install_catalog     | no                 | redhat-operators                   | Catalog that contains the RHACM Operator |
-| ocm_install_catalog_ns  | no                 | openshift-marketplace              | Namespace of the catalog                 |
-| ocm_version             | no                 | 2.3.3                              | Desired RHACM version                    |
-| ocm_channel             | no                 | release-2.3                        | Channel of the desired RHACM version     |
-| ocm_observability       | no                 | false                              | Option to install observability          |
-| ocm_s3_endpoint         | for observability  | overrideme.us-west-1.acmecloud.com | S3 Endpoint for Observability/Thanos     |
-| ocm_s3_bucket           | for observability  | overrideme                         | S3 Bucket                                |
-| ocm_s3_access_key       | for observability  | overrideme                         | S3 Access Key                            |
-| ocm_s3_secret_key       | for observability  | overrideme                         | S3 Secret Key                            |
+| ocm_managedcluster_name | yes                | validclustername                   | `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`        |
+| ocm_hub_kubeconfig      | yes                | /path/to/hub_kubeconfig            | Path to the hub's kubeconfig             |
+| ocm_klusterlet_version  | no                 | 2.2.0                              | Klusterlet version                       |
+| ocm_hub_only            | no                 | false                              | Only setup the cluster entry in the hub  |
 
 
 Dependencies
@@ -59,6 +54,7 @@ The python modules *kubernetes* and *jmespath* are required to connect and extra
     $ pip install kubernetes
     $ pip install jmespath
 
+
 Example Playbook
 ----------------
 
@@ -66,12 +62,9 @@ Including an example of how to use your role (for instance, with variables passe
 
     - hosts: servers
       environment:
-        K8S_AUTH_KUBECONFIG: /path/to/kubeconfig
+        K8S_AUTH_KUBECONFIG: /path/to/spoke_kubeconfig
       roles:
-         - role: ocm-install
-           vars:
-             ocm_observability: true
-             ocm_s3_endpoint: cloudstorage.acmecloud.com
-             ocm_s3_bucket: bucket4metrics
-             ocm_s3_access_key: ABCDE12345abcde
-             ocm_s3_secret_key: abcde12345fghij67890
+        - role: ocm-attach
+          vars:
+            ocm_managedcluster_name: valid-cluster-name
+            ocm_hub_kubeconfig: /path/to/hub_kubeconfig
