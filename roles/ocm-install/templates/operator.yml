@@ -1,0 +1,14 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: advanced-cluster-management
+  namespace: open-cluster-management
+spec:
+  source: {{ ocm_install_catalog }}
+  sourceNamespace: {{ ocm_install_catalog_ns }}
+  installPlanApproval: "Automatic"
+  name: advanced-cluster-management
+  startingCSV: advanced-cluster-management.v{{ ocm_version }}
+  channel: {{ ocm_channel }}
+...

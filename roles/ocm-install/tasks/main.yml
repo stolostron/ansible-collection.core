@@ -1,0 +1,79 @@
+---
+- name: Setup Red Hat Advanced Cluster Management (RHACM) Operator
+  block:
+    - name: Create Namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: open-cluster-management
+    - name: Create OperatorGroup
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: operators.coreos.com/v1
+          kind: OperatorGroup
+          metadata:
+            name: open-cluster-management-group
+            namespace: open-cluster-management
+          spec:
+            targetNamespaces:
+              - open-cluster-management
+    - name: Create Operator Subscription
+      kubernetes.core.k8s:
+        state: present
+        template: operator.yml
+        wait: true
+        wait_condition:
+          type: 'CatalogSourcesUnhealthy'
+          reason: 'AllCatalogSourcesHealthy'
+          status: 'False'
+
+- name: Setup MultiClusterHub (MCH) instance
+  kubernetes.core.k8s:
+    state: present
+    template: multiclusterhub.yml
+    wait: true
+    wait_condition:
+      type: 'Complete'
+      reason: 'ComponentsAvailable'
+      status: 'True'
+    wait_timeout: 300
+
+- name: Setup MultiClusterObservability (MCO) resources
+  block:
+    - name: Create Namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: open-cluster-management-observability
+    - name: Create Thanos Credentials
+      kubernetes.core.k8s:
+        state: present
+        template: thanoscreds.yml
+    - name: Extract Openshift Config Pull Secret
+      set_fact:
+        ocm_pull_secret: "{{ lookup('kubernetes.core.k8s', api_version='v1', kind='Secret', namespace='openshift-config', resource_name='pull-secret') | json_query(query) }}"
+      vars:
+        query: "data.\".dockerconfigjson\""
+      no_log: true
+    - name: Create MCO Pull Secret
+      kubernetes.core.k8s:
+        state: present
+        template: multiclusterobs-pullsecret.yml
+    - name: Create MCO instance
+      kubernetes.core.k8s:
+        state: present
+        template: multiclusterobs.yml
+        wait: true
+        wait_condition:
+          type: 'Ready'
+          reason: 'Ready'
+          status: 'True'
+        wait_timeout: 600
+  when: ocm_observability
