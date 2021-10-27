@@ -1,0 +1,4 @@
+---
+ocm_hub_kubeconfig: /path/to/hub_kubeconfig
+ocm_klusterlet_version: 2.2.0
+ocm_hub_only: false

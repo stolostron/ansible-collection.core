@@ -1,0 +1,46 @@
+---
+- name: Assert ocm_managedcluster_name is valid
+  assert:
+    that: ocm_managedcluster_name is regex('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+    fail_msg: "ocm_managedcluster_name failed regex validation"
+
+- name: Create entry for new Spoke Cluster on Hub
+  block:
+    - name: Create ManagedCluster
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        template: managedcluster.yml
+
+    - name: Create KlusterAddonConfig
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        template: klusterletaddonconfig.yml
+
+- name: Attach Spoke Cluster
+  vars:
+    cluster_import: "{{ ocm_managedcluster_name }}-import"
+  block:
+    - name: Get CRDs from Hub for the new ManagedCluster
+      set_fact:
+        import_crds: "{{ lookup('k8s', kubeconfig=ocm_hub_kubeconfig, api_version='v1', kind='Secret', namespace=ocm_managedcluster_name, resource_name=cluster_import) | json_query(query) }}"
+      vars:
+        query: "data.\"crds.yaml\""
+
+    - name: Get ROs from Hub for the new ManagedCluster
+      set_fact:
+        import_ros: "{{ lookup('k8s', kubeconfig=ocm_hub_kubeconfig, api_version='v1', kind='Secret', namespace=ocm_managedcluster_name, resource_name=cluster_import) | json_query(query) }}"
+      vars:
+        query: "data.\"import.yaml\""
+
+    - name: Apply CRDs to new ManagedCluster
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ import_crds | b64decode }}"
+
+    - name: Apply ROs to new ManagedCluster
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ import_ros | b64decode }}"    
+  when: not ocm_hub_only
