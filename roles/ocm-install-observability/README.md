@@ -1,13 +1,13 @@
-ocm-install-core
-================
+ocm-install-observability
+=========================
 
-Installs Red Hat Advanced Cluster Management Observability (MCO).
+Extends existing Red Hat Advanced Cluster Management (RHACM) Hub with the Observability (MCO) component.
 
 
 Requirements
 ------------
 
-Red Hat Advanced Cluster Management (RHACM) Operator and MultiClusterHub should have been installed already. This role extends RHACM with the Observability component.
+RHACM Operator and MultiClusterHub should have been installed already. This role extends RHACM with the Observability component.
 
 Object storage is required to store the metrics. This store needs to be accessible from the hub cluster.
 
@@ -62,10 +62,18 @@ The python modules *kubernetes* and *jmespath* are required to connect and extra
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+1. Ensure that the above python modules and collections are available.
+2. Ensure the kubeconfig for the target cluster(s) are available.
+3. Then run the test.yml under the tests directory.
+
 
     - hosts: servers
       environment:
         K8S_AUTH_KUBECONFIG: /path/to/kubeconfig
       roles:
         - role: ocm-install-observability
+          vars:
+            ocm_s3_endpoint: cloudstorage.acmecloud.com
+            ocm_s3_bucket: bucket4metrics
+            ocm_s3_access_key: ABCDE12345abcde
+            ocm_s3_secret_key: abcde12345fghij67890

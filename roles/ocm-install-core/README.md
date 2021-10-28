@@ -7,7 +7,9 @@ Installs Red Hat Advanced Cluster Management Operator with the MultiClusterHub (
 Requirements
 ------------
 
-The hosting cluster must be able to connect to an Operator Catalog that contains Red Hat Advanced Cluster Management as well as the image registries to support it. Disconnected installs are possible by overriding the ocm_install_catalog* variables.
+The hosting cluster must be able to connect to an Operator Catalog that contains Red Hat Advanced Cluster Management as well as the image registries to support it.
+
+Disconnected installs are possible provided that images are mirrored internally and then overriding the ocm_install_catalog* variables.
 
 
 Environment Variables
@@ -58,7 +60,10 @@ The python modules *kubernetes* and *jmespath* are required to connect and extra
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+1. Ensure that the above python modules and collections are available.
+2. Ensure the kubeconfig for the target cluster(s) are available.
+3. Then run the test.yml under the tests directory.
+
 
     - hosts: servers
       environment:
