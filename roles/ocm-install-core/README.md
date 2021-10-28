@@ -64,6 +64,7 @@ Example Playbook
 2. Ensure the kubeconfig for the target cluster(s) are available.
 3. Then run the test.yml under the tests directory.
 
+tests/test.yml:
 
     - hosts: servers
       environment:
