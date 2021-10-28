@@ -65,4 +65,8 @@ Including an example of how to use your role (for instance, with variables passe
         K8S_AUTH_KUBECONFIG: /path/to/kubeconfig
       roles:
         - role: ocm-install-core
-
+          vars:
+            ocm_install_catalog: internal-operators-catalog
+            ocm_install_catalog_ns: internal-operators
+            ocm_version: 2.4.0
+            ocm_channel: release-2.4

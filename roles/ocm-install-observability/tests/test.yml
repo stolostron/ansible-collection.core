@@ -1,8 +1,10 @@
 ---
 - hosts: localhost
   remote_user: root
+  environment:
+    K8S_AUTH_KUBECONFIG: ~/.kube/kubeconfig
   roles:
-    - ocm-install-observability
+    - ../../ocm-install-observability
   vars:
     ocm_s3_endpoint: cloudstorage.acmecloud.com
     ocm_s3_bucket: bucket4metrics

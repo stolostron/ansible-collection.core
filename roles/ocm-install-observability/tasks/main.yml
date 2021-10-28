@@ -1,5 +1,5 @@
 ---
-- name: Create Observability Namespace
+- name: Create Observability namespace
   kubernetes.core.k8s:
     state: present
     definition:
@@ -8,7 +8,7 @@
       metadata:
         name: open-cluster-management-observability
 
-- name: Create Thanos Credentials
+- name: Create Thanos credentials
   kubernetes.core.k8s:
     state: present
     template: thanoscreds.yml
@@ -20,7 +20,7 @@
     query: "data.\".dockerconfigjson\""
   no_log: true
 
-- name: Create MCO Pull Secret
+- name: Create MCO pullsecret
   kubernetes.core.k8s:
     state: present
     template: multiclusterobs-pullsecret.yml
