@@ -1,0 +1,5 @@
+---
+ocm_s3_endpoint: overrideme.us-west-1.acmecloud.com
+ocm_s3_bucket: overrideme
+ocm_s3_access_key: overrideme
+ocm_s3_secret_key: overrideme

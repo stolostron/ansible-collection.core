@@ -4,4 +4,5 @@
   environment:
     K8S_AUTH_KUBECONFIG: ~/.kube/kubeconfig
   roles:
-    - role: ../../ocm-install
+    - role: ../../ocm-install-core
+        

@@ -1,0 +1,37 @@
+---
+- name: Create Observability namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: open-cluster-management-observability
+
+- name: Create Thanos credentials
+  kubernetes.core.k8s:
+    state: present
+    template: thanoscreds.yml
+    
+- name: Extract Openshift Config Pull Secret
+  set_fact:
+    ocm_pull_secret: "{{ lookup('kubernetes.core.k8s', api_version='v1', kind='Secret', namespace='openshift-config', resource_name='pull-secret') | json_query(query) }}"
+  vars:
+    query: "data.\".dockerconfigjson\""
+  no_log: true
+
+- name: Create MCO pullsecret
+  kubernetes.core.k8s:
+    state: present
+    template: multiclusterobs-pullsecret.yml
+    
+- name: Create MCO instance
+  kubernetes.core.k8s:
+    state: present
+    template: multiclusterobs.yml
+    wait: true
+    wait_condition:
+      type: 'Ready'
+      reason: 'Ready'
+      status: 'True'
+    wait_timeout: 600
