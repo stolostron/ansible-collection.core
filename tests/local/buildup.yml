@@ -1,0 +1,39 @@
+- hosts: localhost
+  remote_user: root
+  collections:
+    - ocmplus.cm
+  environment:
+    K8S_AUTH_KUBECONFIG: /path/to/hub/cluster/kubeconfig
+  tags: hub-install
+  
+  tasks:
+    - import_role: 
+        name: ocm-install-core
+
+    - import_role:
+        name: ocm-install-observability
+      vars: 
+
+
+- hosts: localhost
+  remote_user: root
+  collections:
+    - ocmplus.cm
+  environment:
+    K8S_AUTH_KUBECONFIG: /path/to/spoke/cluster/kubeconfig
+  tags: spoke-attach
+
+  tasks:
+    - import_role:
+        name: ocm-attach
+      vars:
+
+- hosts: localhost
+  remote_user: root
+  collections:
+    - ocmplus.cm
+  environment:
+    K8S_AUTH_KUBECONFIG: /path/to/hub/cluster/kubeconfig
+  tags: spoke-label
+
+  
