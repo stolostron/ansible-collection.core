@@ -5,7 +5,6 @@ metadata:
   name: {{ ocm_managedcluster_name }}
   namespace: {{ ocm_managedcluster_name }}
 spec:
-  version: {{ ocm_klusterlet_version }}
   clusterName: {{ ocm_managedcluster_name }}
   clusterNamespace: {{ ocm_managedcluster_name }}
   clusterLabels:
@@ -13,14 +12,14 @@ spec:
     name: {{ ocm_managedcluster_name }}
     vendor: auto-detect
   iamPolicyController:
-    enabled: true
+    enabled: {{ iam_policy_controller }}
   searchCollector:
-    enabled: true
+    enabled: {{ search_controller }}
   policyController:
-    enabled: true
+    enabled: {{ policy_controller }}
   certPolicyController:
-    enabled: true
+    enabled: {{ cert_policy_controller }}
   applicationManager:
-    enabled: true
-    argocdCluster: false
+    enabled: {{ application_manager }}
+    argocdCluster: {{ arge_cd_cluster }}
 ...

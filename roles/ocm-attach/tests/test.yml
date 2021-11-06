@@ -1,10 +1,17 @@
 ---
-- hosts: localhost
-  remote_user: root
-  environment:
-    K8S_AUTH_KUBECONFIG: ~/.kube/kubeconfig
+- hosts: managed_clusters
+  connection: local
   roles:
     - role: ../../ocm-attach
       vars:
-        ocm_managedcluster_name: valid-cluster-name
-        ocm_hub_kubeconfig: /path/to/hub_kubeconfig
+        ocm_managedcluster_name: "{{ inventory_hostname }}"
+        ocm_hub_kubeconfig: "{{ hostvars[groups['hub_cluster'][0]].kubeconfig }}"
+
+- hosts: managed_clusters
+  connection: local
+  roles:
+    - role: ../../ocm-attach
+      vars:
+        ocm_managedcluster_name: "{{ inventory_hostname }}"
+        ocm_hub_kubeconfig: "{{ hostvars[groups['hub_cluster'][0]].kubeconfig }}"
+        ocm_managedcluster_kubeconfig: "{{ hostvars[inventory_hostname].kubeconfig }}"

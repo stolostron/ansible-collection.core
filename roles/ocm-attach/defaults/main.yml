@@ -1,3 +1,8 @@
 ---
-ocm_klusterlet_version: 2.2.0
-ocm_hub_only: false
+# Addon enablement flags
+iam_policy_controller: false
+search_controller: false
+policy_controller: false
+cert_policy_controller: false
+application_manager: false
+arge_cd_cluster: false
