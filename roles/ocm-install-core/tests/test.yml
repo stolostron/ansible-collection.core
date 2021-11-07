@@ -1,8 +1,7 @@
 ---
-- hosts: localhost
-  remote_user: root
-  environment:
-    K8S_AUTH_KUBECONFIG: ~/.kube/kubeconfig
+- hosts: hub_cluster
+  connection: local
   roles:
     - role: ../../ocm-install-core
-        
+      vars:
+        ocm_hub_kubeconfig: "{{ hostvars[inventory_hostname].kubeconfig }}"
