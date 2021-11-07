@@ -12,14 +12,14 @@ spec:
     name: {{ ocm_managedcluster_name }}
     vendor: auto-detect
   iamPolicyController:
-    enabled: {{ iam_policy_controller }}
+    enabled: {{ ocm_iam_policy_controller }}
   searchCollector:
-    enabled: {{ search_controller }}
+    enabled: {{ ocm_search_controller }}
   policyController:
-    enabled: {{ policy_controller }}
+    enabled: {{ ocm_policy_controller }}
   certPolicyController:
-    enabled: {{ cert_policy_controller }}
+    enabled: {{ ocm_cert_policy_controller }}
   applicationManager:
-    enabled: {{ application_manager }}
-    argocdCluster: {{ arge_cd_cluster }}
+    enabled: {{ ocm_application_manager }}
+    argocdCluster: {{ ocm_argo_cd_cluster }}
 ...

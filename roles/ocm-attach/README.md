@@ -10,35 +10,25 @@ Requirements
 The controller must be able to communicate with both the hub and managed cluster.
 
 
-Environment Variables
----------------------
-
-Environment variables provide the credentials needed by the kubernetes.core collection to connect to the cluster. These variables refer to the managed cluster, ie, the cluster being attached to the hub.
-
-* Option 1, use kubeconfig. Preferred.
-* Option 2, use access token.
-* Option 3, use username/password. 
-
-| Variable                | Required           | Default                            | Comments                                 |
-|-------------------------|--------------------|------------------------------------|------------------------------------------|
-| K8S_AUTH_KUBECONFIG     | yes, Option 1      | ~/.kube/kubeconfig                 | Path to Kubeconfig                       |
-| K8S_AUTH_HOST           | yes, Option 2,3    | https://api.cluster.domain.com     | URL to the cluster API                   |
-| K8S_AUTH_VERIFY_SSL     | yes, Option 2,3    |                                    | Flag to enforce SSL verification         |
-| K8S_AUTH_SSL_CA_CERT    | yes, Option 2,3    |                                    | Path to Certificate Authority            |
-| K8S_AUTH_API_KEY        | yes, Option 2      |                                    | Token for a cluster-admin                |
-| K8S_AUTH_USERNAME       | yes, Option 3      |                                    | Username for a cluster-admin             |
-| K8S_AUTH_PASSWORD       | yes, Option 3      |                                    | Password for a cluster-admin             |
-
-
 Role Variables
 --------------
 
-| Variable                | Required           | Default                            | Comments                                 |
-|-------------------------|--------------------|------------------------------------|------------------------------------------|
-| ocm_managedcluster_name | yes                | validclustername                   | `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`        |
-| ocm_hub_kubeconfig      | yes                | /path/to/hub_kubeconfig            | Path to the hub's kubeconfig             |
-| ocm_klusterlet_version  | no                 | 2.2.0                              | Klusterlet version                       |
-| ocm_hub_only            | no                 | false                              | Only setup the cluster entry in the hub  |
+If the role is intended to install the hub, then ocm_managedcluster_name and ocm_hub_kubeconfig need to be defined. Plus any desired flags.
+
+If the role is intended to install a managed cluster, then ocm_managedcluster_name and ocm_managedcluster_kubeconfig need to be defined.
+
+
+| Variable                      | Required           | Default                            | Comments                                 |
+|-------------------------------|--------------------|------------------------------------|------------------------------------------|
+| ocm_managedcluster_name       | yes                | validclustername                   | `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`        |
+| ocm_hub_kubeconfig            | yes for hub tasks  | /path/to/hub_kubeconfig            | Path to the hub's kubeconfig             |
+| ocm_managedcluster_kubeconfig | yes for mc tasks   | /path/to/mc_kubeconfig             | Path to the mc's kubeconfig              |
+| ocm_iam_policy_controller     | no                 | false                              | Flag to enable IAM Policy Controller     |
+| ocm_search_controller         | no                 | false                              | Flag to enable Search Controller         |
+| ocm_policy_controller         | no                 | false                              | Flag to enable Policy Controller         |
+| ocm_cert_policy_controller    | no                 | false                              | Flag to enable Cert Policy Controller    |
+| ocm_application_manager       | no                 | false                              | Flag to enable Application Manager       |
+| ocm_argo_cd_cluster           | no                 | false                              | Flag to enable Argo CD Cluster           |
 
 
 Dependencies
@@ -58,13 +48,43 @@ The python modules *kubernetes* and *jmespath* are required to connect and extra
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+An example of how to run this role with a well formed inventory.
 
-    - hosts: servers
-      environment:
-        K8S_AUTH_KUBECONFIG: /path/to/spoke_kubeconfig
+Contents of inventory:
+
+    [hub_cluster]
+    test-cluster-1 kubeconfig=/path/to/kubeconfig1
+
+    [managed_clusters]
+    test-cluster-2 kubeconfig=/path/to/kubeconfig2
+    test-cluster-3 kubeconfig=/path/to/kubeconfig3
+    test-cluster-4 kubeconfig=/path/to/kubeconfig4
+
+    [all:vars]
+    ansible_python_interpreter=/path/to/venv/bin/python
+
+
+
+Contents of test.yml:
+
+    - hosts: managed_clusters
+      connection: local
       roles:
-        - role: ocm-attach
+        - role: ../../ocm-attach
           vars:
-            ocm_managedcluster_name: valid-cluster-name
-            ocm_hub_kubeconfig: /path/to/hub_kubeconfig
+            ocm_managedcluster_name: "{{ inventory_hostname }}"
+            ocm_hub_kubeconfig: "{{ hostvars[groups['hub_cluster'][0]].kubeconfig }}"
+
+    - hosts: managed_clusters
+      connection: local
+      roles:
+        - role: ../../ocm-attach
+          vars:
+            ocm_managedcluster_name: "{{ inventory_hostname }}"
+            ocm_hub_kubeconfig: "{{ hostvars[groups['hub_cluster'][0]].kubeconfig }}"
+            ocm_managedcluster_kubeconfig: "{{ hostvars[inventory_hostname].kubeconfig }}"
+
+Run the playbook with the inventory specified.
+
+    $ ansible-playbook -i inventory test.yml
+
