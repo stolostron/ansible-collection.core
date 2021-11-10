@@ -12,31 +12,12 @@ The hosting cluster must be able to connect to an Operator Catalog that contains
 Disconnected installs are possible provided that images are mirrored internally and then overriding the ocm_install_catalog* variables.
 
 
-Environment Variables
----------------------
-
-Environment variables provide the credentials needed by the kubernetes.core collection to connect to the cluster.
-
-* Option 1, use kubeconfig. Preferred.
-* Option 2, use access token.
-* Option 3, use username/password. 
-
-| Variable                | Required           | Default                            | Comments                                 |
-|-------------------------|--------------------|------------------------------------|------------------------------------------|
-| K8S_AUTH_KUBECONFIG     | yes, Option 1      | ~/.kube/kubeconfig                 | Path to Kubeconfig                       |
-| K8S_AUTH_HOST           | yes, Option 2,3    | https://api.cluster.domain.com     | URL to the cluster API                   |
-| K8S_AUTH_VERIFY_SSL     | yes, Option 2,3    |                                    | Flag to enforce SSL verification         |
-| K8S_AUTH_SSL_CA_CERT    | yes, Option 2,3    |                                    | Path to Certificate Authority            |
-| K8S_AUTH_API_KEY        | yes, Option 2      |                                    | Token for a cluster-admin                |
-| K8S_AUTH_USERNAME       | yes, Option 3      |                                    | Username for a cluster-admin             |
-| K8S_AUTH_PASSWORD       | yes, Option 3      |                                    | Password for a cluster-admin             |
-
-
 Role Variables
 --------------
 
 | Variable                | Required           | Default                            | Comments                                 |
 |-------------------------|--------------------|------------------------------------|------------------------------------------|
+| ocm_hub_kubeconfig      | yes                |                                    | Path to kubeconfig for the hub           |
 | ocm_install_catalog     | no                 | redhat-operators                   | Catalog that contains the RHACM Operator |
 | ocm_install_catalog_ns  | no                 | openshift-marketplace              | Namespace of the catalog                 |
 | ocm_version             | no                 | 2.3.3                              | Desired RHACM version                    |
@@ -60,19 +41,35 @@ The python modules *kubernetes* and *jmespath* are required to connect and extra
 Example Playbook
 ----------------
 
-1. Ensure that the above python modules and collections are available.
-2. Ensure the kubeconfig for the target cluster(s) are available.
-3. Then run the test.yml under the tests directory.
+An example of how to run this role with a well formed inventory.
+
+Contents of inventory:
+
+    [hub_cluster]
+    test-cluster-1 kubeconfig=/path/to/kubeconfig1
+
+    [managed_clusters]
+    test-cluster-2 kubeconfig=/path/to/kubeconfig2
+    test-cluster-3 kubeconfig=/path/to/kubeconfig3
+    test-cluster-4 kubeconfig=/path/to/kubeconfig4
+
+    [all:vars]
+    ansible_python_interpreter=/path/to/venv/bin/python
+
 
 tests/test.yml:
 
-    - hosts: servers
-      environment:
-        K8S_AUTH_KUBECONFIG: /path/to/kubeconfig
+    - hosts: hub_cluster
+      connection: local
       roles:
-        - role: ocm-install-core
+        - role: ../../ocm-install-core
           vars:
+            ocm_hub_kubeconfig: "{{ hostvars[inventory_hostname].kubeconfig }}"
             ocm_install_catalog: internal-operators-catalog
             ocm_install_catalog_ns: internal-operators
             ocm_version: 2.4.0
             ocm_channel: release-2.4
+
+Run the playbook with the inventory specified.
+
+    $ ansible-playbook -i inventory test.yml
