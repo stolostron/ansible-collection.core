@@ -21,8 +21,8 @@ If the role is intended to install a managed cluster, then ocm_managedcluster_na
 | Variable                      | Required           | Default                            | Comments                                 |
 |-------------------------------|--------------------|------------------------------------|------------------------------------------|
 | ocm_managedcluster_name       | yes                | validclustername                   | `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`        |
-| ocm_hub_kubeconfig            | yes for hub tasks  | /path/to/hub_kubeconfig            | Path to the hub's kubeconfig             |
-| ocm_managedcluster_kubeconfig | yes for mc tasks   | /path/to/mc_kubeconfig             | Path to the mc's kubeconfig              |
+| ocm_hub_kubeconfig            | yes                | /path/to/hub_kubeconfig            | Path to the hub's kubeconfig             |
+| ocm_managedcluster_kubeconfig | yes                | /path/to/mc_kubeconfig             | Path to the mc's kubeconfig              |
 | ocm_iam_policy_controller     | no                 | false                              | Flag to enable IAM Policy Controller     |
 | ocm_search_controller         | no                 | false                              | Flag to enable Search Controller         |
 | ocm_policy_controller         | no                 | false                              | Flag to enable Policy Controller         |
