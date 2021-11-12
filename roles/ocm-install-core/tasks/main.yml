@@ -58,6 +58,10 @@
     ocm_startingCSV: "advanced-cluster-management.v{{ ocm_installedCSV }}"
   when: upgrading
 
+- name: Plan Approval Automatic for Install/Upgrade
+  set_fact:
+    ocm_plan_approval: 'Automatic'
+
 - name: Create Operator Subscription
   kubernetes.core.k8s:
     kubeconfig: "{{ ocm_hub_kubeconfig }}"
@@ -98,6 +102,18 @@
 
 - name: Confirm Upgrade of MultiClusterHub
   block:
+    - name: "[Upgrade] Wait until old OCM Operator Removed"
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        api_version: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        name: "{{ ocm_installedCSV }}"
+        namespace: open-cluster-management
+      register: ocm_old_operator
+      until: ocm_old_operator.resources | length == 0
+      retries: 15
+      delay: 20
+
     - name: "[Upgrade] Wait for MultiClusterHub (MCH) instance"
       kubernetes.core.k8s_info:
         kubeconfig: "{{ ocm_hub_kubeconfig }}"
@@ -112,3 +128,13 @@
           status: 'True'
         wait_timeout: 600
   when: upgrading
+
+- name: "Set Plan Approval"
+  set_fact:
+    ocm_plan_approval: "{{ ocm_lockversion | ternary('Manual', 'Automatic', 'Manual') }}"
+
+- name: "Update Operator Subscription with Plan Approval"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ocm_hub_kubeconfig }}"
+    state: present
+    template: operator.yml

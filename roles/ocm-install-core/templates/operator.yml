@@ -7,7 +7,7 @@ metadata:
 spec:
   source: {{ ocm_install_catalog }}
   sourceNamespace: {{ ocm_install_catalog_ns }}
-  installPlanApproval: Automatic
+  installPlanApproval: {{ ocm_plan_approval }}
   name: advanced-cluster-management
   startingCSV: {{ ocm_startingCSV }}
   channel: {{ ocm_channel }}

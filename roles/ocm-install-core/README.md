@@ -3,6 +3,8 @@ ocm-install-core
 
 Installs Red Hat Advanced Cluster Management Operator with the MultiClusterHub (MCH).
 
+If a previous instance of the Operator exists, upgrade logic will be employed to bring the cluster to the desired version.
+
 
 Requirements
 ------------
@@ -22,7 +24,7 @@ Role Variables
 | ocm_install_catalog_ns  | no                 | openshift-marketplace              | Namespace of the catalog                 |
 | ocm_version             | no                 | 2.3.3                              | Desired RHACM version                    |
 | ocm_channel             | no                 | release-2.3                        | Channel of the desired RHACM version     |
-
+| ocm_lockversion         | no                 | false                              | Operator Plan Approval (false=Automatic) |
 
 Dependencies
 ------------
