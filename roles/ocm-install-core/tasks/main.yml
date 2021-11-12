@@ -22,7 +22,42 @@
       spec:
         targetNamespaces:
           - open-cluster-management
-          
+
+- name: Operator Subscription Exists
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: advanced-cluster-management
+    namespace: open-cluster-management
+  register: ocm_operator_sub
+
+- name: Assumed Installing
+  set_fact:
+    upgrading: false
+
+- name: Subscription Exists, but Test if New Version
+  block:
+    - name: Get Currently Installed Subscription
+      set_fact:
+        ocm_installedCSV: "{{ lookup('k8s', kubeconfig=ocm_hub_kubeconfig, api_version='operators.coreos.com/v1alpha1', kind='Subscription', namespace='open-cluster-management', resource_name='advanced-cluster-management') | json_query(query) }}"
+      vars:
+        query: "status.installedCSV"
+
+    - name: Is New Version
+      set_fact:
+        upgrading: "{{ ocm_installedCSV != 'advanced-cluster-management.v' + ocm_version }}"
+  when: ocm_operator_sub.resources | length != 0
+
+- name: "[Install] Set ocm_startingCSV"
+  set_fact:
+    ocm_startingCSV: "advanced-cluster-management.v{{ ocm_version }}"
+  when: not upgrading
+
+- name: "[Upgrade] Set ocm_startingCSV"
+  set_fact:
+    ocm_startingCSV: "advanced-cluster-management.v{{ ocm_installedCSV }}"
+  when: upgrading
+
 - name: Create Operator Subscription
   kubernetes.core.k8s:
     kubeconfig: "{{ ocm_hub_kubeconfig }}"
@@ -34,26 +69,46 @@
       reason: 'AllCatalogSourcesHealthy'
       status: 'False'
 
-- name: Wait for MultiClusterHub (MCH) CRD
-  kubernetes.core.k8s_info:
-    kubeconfig: "{{ ocm_hub_kubeconfig }}"
-    kind: CustomResourceDefinition
-    name: multiclusterhubs.operator.open-cluster-management.io
-    wait: true
-    wait_condition:
-      type: 'Established'
-      reason: 'InitialNamesAccepted'
-      status: 'True'
-    wait_timeout: 300
+- name: Confirm Install of MultiClusterHub
+  block:
+    - name: "[Install] Wait for MultiClusterHub (MCH) CRD"
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        kind: CustomResourceDefinition
+        name: multiclusterhubs.operator.open-cluster-management.io
+        wait: true
+        wait_condition:
+          type: 'Established'
+          reason: 'InitialNamesAccepted'
+          status: 'True'
+        wait_timeout: 300
 
-- name: Setup MultiClusterHub (MCH) instance
-  kubernetes.core.k8s:
-    state: present
-    kubeconfig: "{{ ocm_hub_kubeconfig }}"
-    template: multiclusterhub.yml
-    wait: true
-    wait_condition:
-      type: 'Complete'
-      reason: 'ComponentsAvailable'
-      status: 'True'
-    wait_timeout: 600
+    - name: "[Install] Setup MultiClusterHub (MCH) instance"
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        template: multiclusterhub.yml
+        wait: true
+        wait_condition:
+          type: 'Complete'
+          reason: 'ComponentsAvailable'
+          status: 'True'
+        wait_timeout: 600
+  when: not upgrading
+
+- name: Confirm Upgrade of MultiClusterHub
+  block:
+    - name: "[Upgrade] Wait for MultiClusterHub (MCH) instance"
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        api_version: operator.open-cluster-management.io/v1
+        kind: MultiClusterHub
+        name: multiclusterhub
+        namespace: open-cluster-management
+        wait: true
+        wait_condition:
+          type: 'Complete'
+          reason: 'ComponentsAvailable'
+          status: 'True'
+        wait_timeout: 600
+  when: upgrading
