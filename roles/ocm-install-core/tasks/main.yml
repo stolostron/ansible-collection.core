@@ -55,7 +55,7 @@
 
 - name: "[Upgrade] Set ocm_startingCSV"
   set_fact:
-    ocm_startingCSV: "advanced-cluster-management.v{{ ocm_installedCSV }}"
+    ocm_startingCSV: "{{ ocm_installedCSV }}"
   when: upgrading
 
 - name: Plan Approval Automatic for Install/Upgrade
