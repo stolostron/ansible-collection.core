@@ -5,12 +5,20 @@
     fail_msg: "ocm_managedcluster_name failed regex validation"
     success_msg: "{{ ocm_managedcluster_name }} is valid"
 
-# Has cluster registered?
-# Has cluster reported?
+- name: "[HUB] Check if ManagedCluster Registered"
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ ocm_hub_kubeconfig }}"
+    api_version: cluster.open-cluster-management.io/v1
+    kind: ManagedCluster
+    name: "{{ ocm_managedcluster_name }}"
+  register: ocm_mc_obj
+
+- name: "[HUB] Set ocm_mc_registered"
+  set_fact:
+    ocm_mc_registered: "{{ ocm_mc_obj.resources | length == 1 }}"
 
 - name: Register Managed Cluster
   block:
-
     - name: "[HUB] Create ManagedCluster"
       kubernetes.core.k8s:
         state: present
@@ -29,11 +37,26 @@
         kubeconfig: "{{ ocm_hub_kubeconfig }}"
         template: klusterletaddonconfig.yml
   when:
-    - mc state not registered
+    - not ocm_mc_registered
+
+
+- name: "[HUB] Pull ManagedCluster Status"
+  set_fact:
+    ocm_mc_status: "{{ lookup('kubernetes.core.k8s', kubeconfig=ocm_hub_kubeconfig, api_version='cluster.open-cluster-management.io/v1', kind='ManagedCluster', resource_name=ocm_managedcluster_name) | json_query(query) }}"
+  vars:
+    query: "status.conditions"
+
+- name: Debug
+  debug:
+    msg: "Item: {{ item }}"
+  with_items: "{{ ocm_mc_status }}"
+
+- name: Quit
+  assert:
+    that: false
 
 - name: Attach Managed Cluster
   block:
-
     - name: "[MC] Derive import name"
       set_fact:
         cluster_import: "{{ ocm_managedcluster_name }}-import"
@@ -61,5 +84,5 @@
         state: present
         kubeconfig: "{{ ocm_managedcluster_kubeconfig }}"
         definition: "{{ import_ros | b64decode }}"
-  when:
-    - mc state not reported
+  when: false
+#    - not ocm_mc_reported
