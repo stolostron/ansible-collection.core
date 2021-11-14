@@ -39,35 +39,29 @@
   when:
     - not ocm_mc_registered
 
-
-- name: "[HUB] Pull ManagedCluster Status"
+- name: "[HUB] Pull ManagedClusterJoined Status"
   set_fact:
     ocm_mc_status: "{{ lookup('kubernetes.core.k8s', kubeconfig=ocm_hub_kubeconfig, api_version='cluster.open-cluster-management.io/v1', kind='ManagedCluster', resource_name=ocm_managedcluster_name) | json_query(query) }}"
   vars:
-    query: "status.conditions"
+    query: "status.conditions[?type == 'ManagedClusterJoined'].status"
 
-- name: Debug
-  debug:
-    msg: "Item: {{ item }}"
-  with_items: "{{ ocm_mc_status }}"
-
-- name: Quit
-  assert:
-    that: false
+- name: "[HUB] Determine if Managed Cluster has Joined"
+  set_fact:
+    ocm_mc_reported: "{{ ocm_mc_status | length == 1 and ocm_mc_status[0] == 'True' }}"
 
 - name: Attach Managed Cluster
   block:
-    - name: "[MC] Derive import name"
+    - name: "[HUB] Derive import name"
       set_fact:
         cluster_import: "{{ ocm_managedcluster_name }}-import"
 
-    - name: "[MC] Get CRDs from Hub for the new ManagedCluster"
+    - name: "[HUB] Get CRDs from Hub for the new ManagedCluster"
       set_fact:
         import_crds: "{{ lookup('k8s', kubeconfig=ocm_hub_kubeconfig, api_version='v1', kind='Secret', namespace=ocm_managedcluster_name, resource_name=cluster_import) | json_query(query) }}"
       vars:
         query: "data.\"crds.yaml\""
 
-    - name: "[MC] Get ROs from Hub for the new ManagedCluster"
+    - name: "[HUB] Get ROs from Hub for the new ManagedCluster"
       set_fact:
         import_ros: "{{ lookup('k8s', kubeconfig=ocm_hub_kubeconfig, api_version='v1', kind='Secret', namespace=ocm_managedcluster_name, resource_name=cluster_import) | json_query(query) }}"
       vars:
@@ -84,5 +78,4 @@
         state: present
         kubeconfig: "{{ ocm_managedcluster_kubeconfig }}"
         definition: "{{ import_ros | b64decode }}"
-  when: false
-#    - not ocm_mc_reported
+  when: not ocm_mc_reported
