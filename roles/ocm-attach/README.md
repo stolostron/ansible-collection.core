@@ -13,9 +13,7 @@ The controller must be able to communicate with both the hub and managed cluster
 Role Variables
 --------------
 
-If the role is intended to install the hub, then ocm_managedcluster_name and ocm_hub_kubeconfig need to be defined. Plus any desired flags.
-
-If the role is intended to install a managed cluster, then ocm_managedcluster_name and ocm_managedcluster_kubeconfig need to be defined.
+The role will communicate with both the hub and managed cluster to register the managed cluster and install the agents. It is idempotent, so all checks for existence will occur before the action. The role can be safely run repeatedly for additional managed cluster entries in the inventory.
 
 
 | Variable                      | Required           | Default                            | Comments                                 |
@@ -66,14 +64,6 @@ Contents of inventory:
 
 
 Contents of test.yml:
-
-    - hosts: managed_clusters
-      connection: local
-      roles:
-        - role: ../../ocm-attach
-          vars:
-            ocm_managedcluster_name: "{{ inventory_hostname }}"
-            ocm_hub_kubeconfig: "{{ hostvars[groups['hub_cluster'][0]].kubeconfig }}"
 
     - hosts: managed_clusters
       connection: local
