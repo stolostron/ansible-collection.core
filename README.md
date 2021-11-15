@@ -3,27 +3,20 @@
 An Ansible Collection that allows you to interact with OCM/ACM to provision and manage your Hybrid Cloud presence from the command line.
 
 # Plugins
-None
+
+Dynamic Inventory for RHACM (pending)
 
 # Roles
+
 ocm-install-core
 
 ocm-install-observability
 
+ocm-uninstall (pending)
+
 ocm-attach
 
-ocm-detach
-
-# Test Environment
-
-virtual environment
-  pip install
-
-build galaxy collection
-
-import galaxy collection
-
-update test files
+ocm-detach (pending)
 
 
 ## Disclaimer
