@@ -2,19 +2,19 @@
 
 An Ansible Collection that allows you to interact with OCM/ACM to provision and manage your Hybrid Cloud presence from the command line.
 
-# Plugins
+## Plugins
 
 Dynamic Inventory for RHACM (pending)
 
-# Roles
+## Roles
 
-ocm-install-core
+[ocm-install-core](roles/ocm-install-core/README.md)
 
-ocm-install-observability
+[ocm-install-observability](roles/ocm-install-observability/README.md)
 
 ocm-uninstall (pending)
 
-ocm-attach
+[ocm-attach](roles/ocm-attach/README.md)
 
 ocm-detach (pending)
 
