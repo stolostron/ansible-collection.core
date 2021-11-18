@@ -1,5 +1,5 @@
 ---
-- hosts: managed_clusters
+- hosts: unmanaged_clusters
   connection: local
   roles:
     - role: ../../ocm-detach

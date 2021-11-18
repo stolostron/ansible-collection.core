@@ -19,7 +19,7 @@ The role will communicate with both the hub and managed cluster to unregister th
 |-------------------------------|--------------------|------------------------------------|------------------------------------------|
 | ocm_managedcluster_name       | yes                | validclustername                   | `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`        |
 | ocm_hub_kubeconfig            | yes                | /path/to/hub_kubeconfig            | Path to the hub's kubeconfig             |
-| ocm_managedcluster_kubeconfig | yes                | /path/to/mc_kubeconfig             | Path to the mc's kubeconfig              |
+| ocm_managedcluster_kubeconfig | no                 | /path/to/mc_kubeconfig             | Use for verification on managed cluster  |
 
 
 Dependencies
@@ -51,6 +51,9 @@ Contents of inventory:
     test-cluster-3 kubeconfig=/path/to/kubeconfig3
     test-cluster-4 kubeconfig=/path/to/kubeconfig4
 
+    [unmanaged_clusters]
+    test-cluster-2 kubeconfig=/path/to/kubeconfig2
+
     [all:vars]
     ansible_python_interpreter=/path/to/venv/bin/python
 
@@ -58,7 +61,7 @@ Contents of inventory:
 
 Contents of test.yml:
 
-    - hosts: managed_clusters
+    - hosts: unmanaged_clusters
       connection: local
       roles:
         - role: ../../ocm-detach
