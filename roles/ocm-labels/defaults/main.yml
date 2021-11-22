@@ -1,4 +1,5 @@
 ---
+ocm_merge_type: preserve
 ocm_protect_keys: true
 ocm_protected_keys:
   - 'name'
