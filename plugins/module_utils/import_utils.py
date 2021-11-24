@@ -13,6 +13,7 @@ except ImportError as e:
     IMP_ERR['yaml'] = {'error': traceback.format_exc(),
                        'exception': e}
 try:
+    from kubernetes.dynamic import DynamicClient
     from kubernetes.dynamic.exceptions import DynamicApiError, NotFoundError
 except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
@@ -217,3 +218,17 @@ def dynamic_apply(dynamic_client, resource_dict):
     except DynamicApiError as exc:
         # TODO retry depending on error type
         raise AnsibleError(f'Failed to create object: {exc.body}')
+
+
+def get_managed_cluster(hub_client: DynamicClient, managed_cluster_name: str):
+    managed_cluster_api = hub_client.resources.get(
+        api_version="cluster.open-cluster-management.io/v1",
+        kind="ManagedCluster",
+    )
+
+    try:
+        managed_cluster = managed_cluster_api.get(name=managed_cluster_name)
+    except NotFoundError:
+        return None
+
+    return managed_cluster
