@@ -1,6 +1,23 @@
 # Open Cluster Management Ansible Collection
 
-An Ansible Collection that allows you to interact with OCM/ACM to provision and manage your Hybrid Cloud presence from the command line. 
+An Ansible Collection that allows you to interact with OCM/ACM to provision and manage your Hybrid Cloud presence from the command line.
+
+## Plugins
+
+Dynamic Inventory for RHACM (pending)
+
+## Roles
+
+[ocm-install-core](roles/ocm-install-core/README.md)
+
+[ocm-install-observability](roles/ocm-install-observability/README.md)
+
+ocm-uninstall (pending)
+
+[ocm-attach](roles/ocm-attach/README.md)
+
+ocm-detach (pending)
+
 
 ## Disclaimer
 
