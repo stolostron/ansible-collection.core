@@ -4,4 +4,4 @@ kind: ManagedCluster
 metadata:
   name: {{ ocm_managedcluster_name }}
   labels:
-    {{ item }}: "{{ ocm_user_labels[item] }}"
+    {{ item }}: "{{ ocm_desired_labels[item] }}"
