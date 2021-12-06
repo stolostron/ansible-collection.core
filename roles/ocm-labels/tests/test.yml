@@ -1,0 +1,9 @@
+---
+- hosts: managed_clusters
+  connection: local
+  roles:
+    - role: ../../ocm-labels
+      vars:
+        ocm_hub_kubeconfig: "{{ hostvars[groups['hub_cluster'][0]].kubeconfig }}"
+        ocm_managedcluster_name: "{{ inventory_hostname }}"
+        ocm_user_labels: "{{ hostvars[inventory_hostname].group_labels | combine(hostvars[inventory_hostname].host_labels) }}"

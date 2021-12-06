@@ -1,0 +1,14 @@
+---
+ocm_merge_type: preserve
+ocm_protect_keys: true
+ocm_protected_keys:
+  - 'name'
+  - 'clusterID'
+  - 'cloud'
+  - 'vendor'
+  - 'local-cluster'
+  - 'openshiftVersion'
+  - 'installer.name*'
+  - 'feature.open-cluster-management.io/*'
+  - 'key[0-9]'
+  - '^c.*'

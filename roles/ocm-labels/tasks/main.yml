@@ -1,0 +1,113 @@
+---
+- name: "Verify valid cluster name"
+  assert:
+    that: ocm_managedcluster_name is regex('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+    fail_msg: "ocm_managedcluster_name failed regex validation"
+    success_msg: "{{ ocm_managedcluster_name }} is valid"
+
+- name: Get Labels from Cluster
+  set_fact:
+    ocm_cluster_labels: "{{ lookup('kubernetes.core.k8s', kubeconfig=ocm_hub_kubeconfig, api_version='cluster.open-cluster-management.io/v1', kind='ManagedCluster', resource_name=ocm_managedcluster_name) | json_query(query) }}"
+  vars:
+    query: "metadata.labels"
+
+- name: Set Theory Calculations
+  vars:
+    keys_userlist_all: "{{ ocm_desired_labels.keys() | list }}"
+    keys_clusterlist_all: "{{ ocm_cluster_labels.keys() | list }}"
+    keys_userlist_protected: []
+    keys_clusterlist_protected: []
+  block:
+    - name: '[SETCALCS] Match ocm_protected_keys patterns with keys_userlist_all'
+      set_fact:
+        keys_userlist_protected: "{{ keys_userlist_protected }} + {{ keys_userlist_all | select('match', item) | list }}"
+      with_items: "{{ ocm_protected_keys }}"
+
+    - name: '[SETCALCS] Remove duplicates from keys_userlist_protected'
+      set_fact:
+        keys_userlist_protected: "{{ keys_userlist_protected | unique }}"
+
+    - name: '[SETCALCS] Match ocm_protected_keys patterns with keys_clusterlist_all'
+      set_fact:
+        keys_clusterlist_protected: "{{ keys_clusterlist_protected }} + {{ keys_clusterlist_all | select('match', item) | list }}"
+      with_items: "{{ ocm_protected_keys }}"
+
+    - name: '[SETCALCS] Remove duplicates from keys_clusterlist_all'
+      set_fact:
+        keys_clusterlist_protected: "{{ keys_clusterlist_protected | unique }}"
+        
+    - name: '[SETCALCS] Set lists containing all keys'
+      set_fact:
+        ocm_keys_userlist_all: "{{ keys_userlist_all }}"
+        ocm_keys_clusterlist_all: "{{ keys_clusterlist_all }}"
+
+    - name: '[SETCALCS] Set lists containing filtered out keys'
+      set_fact:
+        ocm_keys_userlist_filtered: "{{ keys_userlist_all | difference(keys_userlist_protected) }}"
+        ocm_keys_clusterlist_filtered: "{{ keys_clusterlist_all | difference(keys_clusterlist_protected) }}"
+
+    - name: '[SETCALCS] Set lists containing unique keys between user and cluster lists'
+      set_fact:
+        ocm_keys_userlist_uniq: "{{ keys_userlist_all | difference(keys_clusterlist_all) }}"
+        ocm_keys_clusterlist_uniq: "{{ keys_clusterlist_all | difference(keys_userlist_all) }}"
+
+    - name: '[SETCALCS] Set lists containing unique and filtered lists'
+      set_fact:
+        ocm_keys_userlist_uniq_filtered: "{{ ocm_keys_userlist_uniq | difference(keys_userlist_protected) }}"
+        ocm_keys_clusterlist_uniq_filtered: "{{ ocm_keys_clusterlist_uniq | difference(keys_clusterlist_protected) }}"
+
+- name: Replace
+  vars:
+    clusterlist_delete_keys: "{{ ocm_protect_keys | ternary(ocm_keys_clusterlist_filtered, ocm_keys_clusterlist_all) }}"
+    userlist_update_keys: "{{ ocm_protect_keys | ternary(ocm_keys_userlist_filtered, ocm_keys_userlist_all) }}"
+  block:
+    - name: '[REPLACE] Clear ManagedCluster Labels'
+      kubernetes.core.k8s:
+        state: patched
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        template: mc_delete_label.yml
+      loop: "{{ clusterlist_delete_keys }}"
+
+    - name: '[REPLACE] Add User Labels to ManagedCluster'
+      kubernetes.core.k8s:
+        state: patched
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        template: mc_update_label.yml
+      loop: "{{ userlist_update_keys }}"
+  when: ocm_merge_type == 'replace'
+
+- name: Update
+  vars:
+    userlist_update_keys: "{{ ocm_protect_keys | ternary(ocm_keys_userlist_filtered, ocm_keys_userlist_all) }}"
+  block:
+    - name: '[UPDATE] Update User Labels to ManagedCluster'
+      kubernetes.core.k8s:
+        state: patched
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        template: mc_update_label.yml
+      loop: "{{ userlist_update_keys }}"
+  when: ocm_merge_type == 'update'
+
+- name: Preserve
+  vars:
+    userlist_update_keys: "{{ ocm_protect_keys | ternary(ocm_keys_userlist_uniq_filtered, ocm_keys_userlist_uniq) }}"
+  block:
+    - name: '[PRESERVE] Update User Labels to ManagedCluster'
+      kubernetes.core.k8s:
+        state: patched
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        template: mc_update_label.yml
+      loop: "{{ userlist_update_keys }}"
+  when: ocm_merge_type == 'preserve'
+
+- name: Delete
+  vars:
+    userlist_delete_keys: "{{ ocm_protect_keys | ternary(ocm_keys_userlist_filtered, ocm_keys_userlist_all) }}"
+  block:
+    - name: '[DELETE] Remove ManagedCluster Labels'
+      kubernetes.core.k8s:
+        state: patched
+        kubeconfig: "{{ ocm_hub_kubeconfig }}"
+        template: mc_delete_label.yml
+      loop: "{{ userlist_delete_keys }}"
+  when: ocm_merge_type == 'delete'

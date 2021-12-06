@@ -1,0 +1,10 @@
+[hub_cluster]
+test-cluster-1 kubeconfig=/path/to/kubeconfig1
+
+[managed_clusters]
+test-cluster-2 kubeconfig=/path/to/kubeconfig2
+test-cluster-3 kubeconfig=/path/to/kubeconfig3
+test-cluster-4 kubeconfig=/path/to/kubeconfig4
+
+[all:vars]
+ansible_python_interpreter=/path/to/venv/bin/python
