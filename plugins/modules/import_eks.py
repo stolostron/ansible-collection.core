@@ -7,7 +7,8 @@ from ansible_collections.ocmplus.cm.plugins.module_utils import import_utils
 from botocore import session
 from awscli.customizations.eks.get_token import STSClientFactory, TokenGenerator, TOKEN_EXPIRATION_MINS
 from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_aws_connection_info
+
 import boto3
 import polling
 
@@ -136,8 +137,10 @@ def execute_module(module):
     addons = module.params['addons']
     wait = module.params['wait'] # if key exists and no value and watch out for wait package in python
     timeout = module.params['timeout']
-    aws_access_key = module.params['aws_access_key']
-    aws_secret_key = module.params['aws_secret_key']
+
+    region, ec2_url, aws_connect_kwargs = get_aws_connection_info(module, boto3=True)
+    aws_access_key = aws_connect_kwargs['aws_access_key_id']
+    aws_secret_key = aws_connect_kwargs['aws_secret_access_key']
 
     # Create EKS connection
     eks_conn = boto3.client('eks', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)
