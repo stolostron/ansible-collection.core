@@ -1,0 +1,7 @@
+plugins/modules/import_eks.py compile-2.7!skip # Python 2.7 is not supported
+plugins/modules/import_eks.py import-3.9 # TODO need to handle import errors with sanity test
+plugins/module_utils/import_utils.py compile-2.7!skip # Python 2.7 is not supported
+plugins/module_utils/import_utils.py import-3.9 # TODO need to handle import errors with sanity test
+roles/ocm-install-core/templates/operator.yml yamllint:unparsable-with-libyaml
+roles/ocm-labels/templates/mc_delete_label.yml yamllint:unparsable-with-libyaml
+roles/ocm-labels/templates/mc_update_label.yml yamllint:unparsable-with-libyaml

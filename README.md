@@ -18,6 +18,21 @@ ocm-uninstall (pending)
 
 ocm-detach (pending)
 
+## Modules
+
+[ocmplus.cm.import_eks](plugins/modules/import_eks.py)
+
+## Tests
+
+### Sanity Test
+
+Running sanity test:
+
+    $ ansible-test sanity
+
+### Integration Test
+
+[Integration test for `ocmplus.cm.import_eks`](tests/integration/targets/import_eks/README.md)
 
 ## Disclaimer
 
