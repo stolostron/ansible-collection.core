@@ -138,7 +138,7 @@ def execute_module(module):
     wait = module.params['wait'] # if key exists and no value and watch out for wait package in python
     timeout = module.params['timeout']
 
-    region, ec2_url, aws_connect_kwargs = get_aws_connection_info(module, boto3=True)
+    _, _, aws_connect_kwargs = get_aws_connection_info(module, boto3=True)
     aws_access_key = aws_connect_kwargs['aws_access_key_id']
     aws_secret_key = aws_connect_kwargs['aws_secret_access_key']
 
