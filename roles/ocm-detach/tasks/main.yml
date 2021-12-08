@@ -1,0 +1,26 @@
+---
+- name: Removed ManagedCluster
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ocm_hub_kubeconfig }}"
+    state: absent
+    definition:
+      apiVersion: cluster.open-cluster-management.io/v1
+      kind: ManagedCluster
+      metadata:
+        name: "{{ ocm_managedcluster_name }}"
+    wait: true
+    wait_timeout: 600
+
+- name: Verification on ManagedCluster
+  block:
+    - name: Lookup ManagedCluster Agent
+      set_fact:
+        ocm_agent: "{{ lookup('kubernetes.core.k8s', kubeconfig=ocm_managedcluster_kubeconfig, api_version='project.openshift.io/v1', kind='Project', resource_name='open-cluster-management-agent') }}"
+        ocm_agent_addon: "{{ lookup('kubernetes.core.k8s', kubeconfig=ocm_managedcluster_kubeconfig, api_version='project.openshift.io/v1', kind='Project', resource_name='open-cluster-management-agent-addon') }}"
+
+    - name: Assert ManagedCluster is Clean
+      assert:
+        that:
+          - ocm_agent | length == 0
+          - ocm_agent_addon | length == 0
+  when: ocm_managedcluster_kubeconfig is defined
