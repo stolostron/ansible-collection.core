@@ -1,0 +1,8 @@
+---
+# Addon enablement flags
+ocm_iam_policy_controller: false
+ocm_search_controller: false
+ocm_policy_controller: false
+ocm_cert_policy_controller: false
+ocm_application_manager: false
+ocm_argo_cd_cluster: false
