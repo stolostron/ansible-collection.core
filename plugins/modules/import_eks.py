@@ -206,16 +206,16 @@ def main():
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60),
         addons=dict(
-            type='dict', 
-            required=False, 
+            type='dict',
             options=dict(
-                policy_controller=dict(type='bool', required=False, default=False),
-                observability_controller=dict(type='bool', required=False, default=False),
-                iam_policy_controller=dict(type='bool', required=False, default=False),
-                search_collector=dict(type='bool', required=False, default=False),
-                application_manager=dict(type='bool', required=False, default=False),
-                cert_policy_controller=dict(type='bool', required=False, default=False),
+                policy_controller=dict(type='bool', default=False),
+                observability_controller=dict(type='bool', default=False),
+                iam_policy_controller=dict(type='bool', default=False),
+                search_collector=dict(type='bool', default=False),
+                application_manager=dict(type='bool', default=False),
+                cert_policy_controller=dict(type='bool', default=False),
             ),
+            default={},
         ),
     )
 
