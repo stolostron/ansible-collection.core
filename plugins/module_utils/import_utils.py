@@ -9,17 +9,17 @@ import traceback
 IMP_ERR = {}
 try:
     import yaml
-except ImportError:
+except ImportError as e:
     IMP_ERR['yaml'] = {'error': traceback.format_exc(),
                        'exception': e}
 try:
     from kubernetes.dynamic.exceptions import DynamicApiError, NotFoundError
-except ImportError:
+except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
 try:
     from jinja2 import Template
-except ImportError:
+except ImportError as e:
     IMP_ERR['jinja2'] = {'error': traceback.format_exc(),
                          'exception': e}
 from ansible.errors import AnsibleError
@@ -156,6 +156,7 @@ def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons):
 
 try:
     import backoff
+
     @backoff.on_exception(backoff.expo, NotFoundError)
     def get_import_secret(secret_api, cluster_name):
         """
@@ -166,7 +167,7 @@ try:
         """
         return secret_api.get(name=cluster_name + "-import", namespace=cluster_name)
 except ImportError:
-    print("Error importing backoff lib: " + traceback.format_exc())
+    raise AnsibleError("Error importing backoff lib: " + traceback.format_exc())
 
 
 def get_import_yamls(hub_client, cluster_name):

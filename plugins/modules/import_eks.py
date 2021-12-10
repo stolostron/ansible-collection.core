@@ -4,7 +4,6 @@ from __future__ import (absolute_import, division, print_function)
 
 __metaclass__ = type
 
-import traceback
 
 DOCUMENTATION = r'''
 
@@ -181,6 +180,8 @@ err:
 '''
 
 
+import logging
+import traceback
 IMP_ERR = {}
 try:
     import boto3
@@ -194,6 +195,7 @@ except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
 from ansible.errors import AnsibleError
+from ansible.module_utils.basic import missing_required_lib, to_native
 from ansible_collections.ocmplus.cm.plugins.module_utils import import_utils
 from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_aws_connection_info
@@ -211,6 +213,7 @@ def check_module_import(module):
             module.fail_json(msg=missing_required_lib(k), exception=v['exception'],
                              error=to_native(v['error']))
 
+
 def execute_module(module):
     check_module_import(module)
     eks_cluster_name = module.params['eks_cluster_name']
@@ -219,7 +222,7 @@ def execute_module(module):
     wait = module.params['wait']
     timeout = module.params['timeout']
 
-    _, _, aws_connect_kwargs = get_aws_connection_info(module, boto3=True)
+    aws_connect_kwargs = get_aws_connection_info(module, boto3=True)[2]
     aws_access_key = aws_connect_kwargs['aws_access_key_id']
     aws_secret_key = aws_connect_kwargs['aws_secret_access_key']
 
@@ -256,12 +259,12 @@ def execute_module(module):
             try:
                 import_utils.dynamic_apply(eks_kube_client, crds_yaml)
             except AnsibleError as e:
-                print("Error when applying CRD yamls: " + traceback.format_exc())
+                logging.error("Error when applying CRD yamls: %s", traceback.format_exc())
             for resource in import_yamls:
                 try:
                     import_utils.dynamic_apply(eks_kube_client, resource)
                 except AnsibleError:
-                    print("Error when applying import yamls: " + traceback.format_exc())
+                    logging.error("Error when applying import yamls: %s", traceback.format_exc())
 
             if wait:
                 managedcluster_api = hub_client.resources.get(
