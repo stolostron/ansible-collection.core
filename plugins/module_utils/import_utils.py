@@ -1,16 +1,30 @@
+from __future__ import (absolute_import, division, print_function)
+
+__metaclass__ = type
+
+# TODO: learn from other module import error handling and come up with an convention
 import base64
-import logging
+import traceback
 
-import yaml
-from jinja2 import Template
-from kubernetes import client as k8s_client
-from kubernetes import config, dynamic, watch
-from kubernetes.client import api_client
-from kubernetes.dynamic.exceptions import NotFoundError
-import backoff
-import polling
+IMP_ERR = {}
+try:
+    import yaml
+except ImportError as e:
+    IMP_ERR['yaml'] = {'error': traceback.format_exc(),
+                       'exception': e}
+try:
+    from kubernetes.dynamic.exceptions import DynamicApiError, NotFoundError
+except ImportError as e:
+    IMP_ERR['k8s'] = {'error': traceback.format_exc(),
+                      'exception': e}
+try:
+    from jinja2 import Template
+except ImportError as e:
+    IMP_ERR['jinja2'] = {'error': traceback.format_exc(),
+                         'exception': e}
+from ansible.errors import AnsibleError
 
-MANAGEDCLUSTER_TEMPLATE=Template("""
+MANAGEDCLUSTER_TEMPLATE = """
 apiVersion: cluster.open-cluster-management.io/v1
 kind: ManagedCluster
 metadata:
@@ -22,9 +36,9 @@ labels:
 spec:
   hubAcceptsClient: true
   leaseDurationSeconds: 60
-""")
+"""
 
-KLUSTERLETADDONCONFIG_TEMPLATE=Template("""
+KLUSTERLETADDONCONFIG_TEMPLATE = """
 ---
 apiVersion: agent.open-cluster-management.io/v1
 kind: KlusterletAddonConfig
@@ -48,18 +62,33 @@ spec:
     enabled: {{ ocm_cert_policy_controller }}
   applicationManager:
     enabled: {{ ocm_application_manager }}
-""")
+"""
 
 
 def should_import(managedcluster):
+    """
+    should_import returns True if the input managedCluster should be imported,
+    and False if otherwise.
+    :param managedcluster: name of managedCluster to import
+    :return: bool
+    """
     conditions = managedcluster['status'].get('conditions', [])
     for condition in conditions:
         if condition['type'] == 'ManagedClusterJoined':
             return False
     return True
 
+
 def ensure_managedcluster(hub_client, cluster_name):
-    managedcluster_api = hub_client.resources.get(api_version="cluster.open-cluster-management.io/v1", kind="ManagedCluster")
+    """
+    ensure_managedcluster checks and polls until the managedCluster is successfully imported.
+    :param hub_client: the ACM Hub cluster's API client
+    :param cluster_name: name of the managedCluster to check
+    :return: the managedCluster object
+    """
+    managedcluster_api = hub_client.resources.get(
+        api_version="cluster.open-cluster-management.io/v1",
+        kind="ManagedCluster")
 
     def check_response(response):
         return response['status']
@@ -67,25 +96,51 @@ def ensure_managedcluster(hub_client, cluster_name):
     try:
         managedcluster = managedcluster_api.get(name=cluster_name)
     except NotFoundError:
-        new_managedcluster_raw = MANAGEDCLUSTER_TEMPLATE.render(managedcluster_name=cluster_name)
+        if 'jinja2' in IMP_ERR:
+            raise AnsibleError("Error importing Kubernetes: " + IMP_ERR['k8s']['error'])
+        if 'yaml' in IMP_ERR:
+            raise AnsibleError("Error importing yaml: " + IMP_ERR['yaml']['error'])
+        new_managedcluster_raw = Template(MANAGEDCLUSTER_TEMPLATE).render(managedcluster_name=cluster_name)
         new_managedcluster = yaml.safe_load(new_managedcluster_raw)
         managedcluster_api.create(new_managedcluster)
-        managedcluster = polling.poll(
-            target=lambda: managedcluster_api.get(name=cluster_name),
-            check_success=check_response,
-            step=1,
-            timeout=60,
-        )
+        try:
+            import polling
+            managedcluster = polling.poll(
+                target=lambda: managedcluster_api.get(name=cluster_name),
+                check_success=check_response,
+                step=1,
+                timeout=60,
+            )
+        except ImportError:
+            pass
     return managedcluster
 
+
 def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons):
-    klusterletaddonconfig_api = hub_client.resources.get(api_version="agent.open-cluster-management.io/v1", kind="KlusterletAddonConfig")
+    """
+    ensure_klusterletaddonconfig creates the Klusterlet addon config if it's
+    not already existed, and returns the config object.
+    :param hub_client: dynamic client for the ACM hub cluster
+    :param eks_cluster_name: name of EKS cluster
+    :param addons: a dict of all addons and whether they are enabled/disabled
+    :return: the Klusterlet addon config object
+    """
+    if 'k8s' in IMP_ERR:
+        raise AnsibleError("Error importing Kubernetes: " + IMP_ERR['k8s']['error'])
+    klusterletaddonconfig_api = hub_client.resources.get(
+        api_version="agent.open-cluster-management.io/v1",
+        kind="KlusterletAddonConfig")
     try:
-        klusterletaddonconfig = klusterletaddonconfig_api.get(name=eks_cluster_name, namespace=eks_cluster_name)
+        klusterletaddonconfig = klusterletaddonconfig_api.get(name=eks_cluster_name,
+                                                              namespace=eks_cluster_name)
         # TODO: ensure klusterletaddonconfig match params[addons] and patch if needed
     except NotFoundError:
-        new_klusterletaddonconfig_raw = KLUSTERLETADDONCONFIG_TEMPLATE.render(
-            ocm_managedcluster_name=eks_cluster_name, 
+        if 'jinja2' in IMP_ERR:
+            raise AnsibleError("Error importing Kubernetes: " + IMP_ERR['k8s']['error'])
+        if 'yaml' in IMP_ERR:
+            raise AnsibleError("Error importing yaml: " + IMP_ERR['yaml']['error'])
+        new_klusterletaddonconfig_raw = Template(KLUSTERLETADDONCONFIG_TEMPLATE).render(
+            ocm_managedcluster_name=eks_cluster_name,
             ocm_iam_policy_controller=addons['iam_policy_controller'],
             ocm_search_controller=addons['search_collector'],
             ocm_policy_controller=addons['policy_controller'],
@@ -94,22 +149,38 @@ def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons):
         )
         new_klusterletaddonconfig = yaml.safe_load(new_klusterletaddonconfig_raw)
         klusterletaddonconfig_api.create(new_klusterletaddonconfig)
-        klusterletaddonconfig = klusterletaddonconfig_api.get(name=eks_cluster_name, namespace=eks_cluster_name)
+        klusterletaddonconfig = klusterletaddonconfig_api.get(name=eks_cluster_name,
+                                                              namespace=eks_cluster_name)
     return klusterletaddonconfig
 
-# TODO possibly make this work
-# def get_with_retry(api, *backoff_params, **get_params):
-#     print(str(get_params))
-#     return (backoff.on_exception(*backoff_params))(api.get(name=get_params['name'], namespace=get_params["namespace"]))
 
-@backoff.on_exception(backoff.expo, NotFoundError)
-def get_import_secret(secret_api, cluster_name):
-    return secret_api.get(name=cluster_name+"-import", namespace=cluster_name)
+try:
+    import backoff
+
+    @backoff.on_exception(backoff.expo, NotFoundError)
+    def get_import_secret(secret_api, cluster_name):
+        """
+        Fetches the managed cluster import secret with exponential backoff
+        :param secret_api: The Secret API from the ACM hub client
+        :param cluster_name: The name of managed cluster
+        :return: The Secret object
+        """
+        return secret_api.get(name=cluster_name + "-import", namespace=cluster_name)
+except ImportError:
+    raise AnsibleError("Error importing backoff lib: " + traceback.format_exc())
+
 
 def get_import_yamls(hub_client, cluster_name):
-    #wait for import secret to be generated
+    """
+    Generates the yamls files for importing a managed cluster into an ACM hub cluster
+    :param hub_client: The dynamic Kubernetes client based on the user provided ACM hub kubeconfig
+    :param cluster_name: The name of the managed cluster to import
+    :return: [yaml as a dict for CRDs, list of yamls as dicts for import objects]
+    """
+    if 'yaml' in IMP_ERR:
+        raise AnsibleError("Error importing yaml: " + IMP_ERR['yaml']['error'])
+    # Wait for import secret to be generated
     secret_api = hub_client.resources.get(api_version="v1", kind="Secret")
-    # import_secret = get_with_retry(secret_api, backoff.expo, NotFoundError, name=cluster_name+"-import", namespace=cluster_name)
     import_secret = get_import_secret(secret_api, cluster_name)
 
     crds_yaml_b64_str = import_secret['data']['crds.yaml']
@@ -126,13 +197,23 @@ def get_import_yamls(hub_client, cluster_name):
 
     return crds_yaml_ret, import_yaml_ret
 
+
 def dynamic_apply(dynamic_client, resource_dict):
+    """
+    Applying resources with the provided dynamic client
+    :param dynamic_client: Dynamic client
+    :param resource_dict: resource as a dict
+    :return: None
+    """
+    if 'k8s' in IMP_ERR:
+        raise AnsibleError("Error importing Kubernetes: " + IMP_ERR['k8s']['error'])
     object_api_client = dynamic_client.resources.get(
-      api_version=resource_dict['apiVersion'], 
-      kind=resource_dict['kind']
+        api_version=resource_dict['apiVersion'],
+        kind=resource_dict['kind']
     )
 
     try:
-      object_api_client.create(resource_dict)
-    except:
-      pass
+        object_api_client.create(resource_dict)
+    except DynamicApiError as exc:
+        # TODO retry depending on error type
+        raise AnsibleError(f'Failed to create object: {exc.body}')

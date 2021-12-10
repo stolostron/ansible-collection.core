@@ -1,0 +1,11 @@
+plugins/modules/import_eks.py import-3.9 # TODO issue #32
+plugins/modules/import_eks.py compile-2.7!skip # Python 2.7 is not supported
+plugins/modules/import_eks.py pylint:ansible-bad-module-import # TODO issue #33
+plugins/module_utils/import_utils.py import-3.9 # TODO issue #32
+plugins/module_utils/import_utils.py compile-2.7!skip # Python 2.7 is not supported
+plugins/module_utils/import_utils.py pylint:ansible-bad-module-import # TODO issue #33
+roles/ocm-install-core/templates/operator.yml yamllint:unparsable-with-libyaml # TODO issue #34
+roles/ocm-attach/templates/klusterletaddonconfig.yml yamllint:unparsable-with-libyaml # TODO issue #34
+roles/ocm-attach/templates/managedcluster.yml yamllint:unparsable-with-libyaml # TODO issue #34
+roles/ocm-labels/templates/mc_delete_label.yml yamllint:unparsable-with-libyaml # TODO issue #34
+roles/ocm-labels/templates/mc_update_label.yml yamllint:unparsable-with-libyaml # TODO issue #34

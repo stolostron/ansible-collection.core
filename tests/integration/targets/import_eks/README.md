@@ -14,29 +14,30 @@ An existing Red Hat Advanced Cluster Management Hub Cluster.
 Role Variables
 --------------
 
-| Variable                   | Required | Default | Comments                                                                               |
-|----------------------------|----------|---------|----------------------------------------------------------------------------------------|
-| eks_cluster_name           | yes      |         | Name of the EKS cluster to be imported                                                 |
-| hub_kubeconfig             | yes      |         | Path to the kubeconfig of the RHACM Hub Cluster                                        |
-| aws_access_key             | yes      |         | AWS access key ID                                                                      |
-| aws_secret_key             | yes      |         | AWS access key secret                                                                  |
-| wait                       | no       | False   | Waits until imported EKS cluster comes online an a managed cluster                     |
-| timeout                    | no       | 60      | Number of seconds to wait until imported EKS cluster comes online an a managed cluster |
-| addons                     | yes      |         | List of addons to enable/disable                                                       |
-|   policy_controller        | yes      |         | Whether to enable the policy controller                                                |
-|   observability_controller | no       | False   | Whether to enable the observability controller                                         |
-|   iam_policy_controller    | no       | False   | Whether to enable the IAM policy controller                                            |
-|   search_collector         | no       | False   | Whether to enable the search controller                                                |
-|   application_manager      | no       | False   | Whether to enable the application manager                                              |
-|   cert_policy_controller   | no       | False   | Whether to enable the observability controller                                         |
+| Variable                   | Required | Default     | Comments                                                                               |
+|----------------------------|----------|-------------|----------------------------------------------------------------------------------------|
+| eks_cluster_name           | yes      |             | Name of the EKS cluster to be imported                                                 |
+| hub_kubeconfig             | yes      |             | Path to the kubeconfig of the RHACM Hub Cluster                                        |
+| wait                       | no       | False       | Waits until imported EKS cluster comes online an a managed cluster                     |
+| timeout                    | no       | 60          | Number of seconds to wait until imported EKS cluster comes online an a managed cluster |
+| addons                     | no       | (see below) | List of addons to enable/disable                                                       |
+|   policy_controller        | no       | False       | Whether to enable the policy controller                                                |
+|   observability_controller | no       | False       | Whether to enable the observability controller                                         |
+|   iam_policy_controller    | no       | False       | Whether to enable the IAM policy controller                                            |
+|   search_collector         | no       | False       | Whether to enable the search controller                                                |
+|   application_manager      | no       | False       | Whether to enable the application manager                                              |
+|   cert_policy_controller   | no       | False       | Whether to enable the observability controller                                         |
+
+This module uses the [AWSModule](https://github.com/ansible-collections/amazon.aws/blob/main/plugins/module_utils/core.py), so any variables (such as `aws_access_key` and `aws_secret_key`) used in the AWSModule also applies here.
 
 Dependencies
 ------------
 
 The python modules *boto*, *boto3*, *botocore*, and *awscli* (listed in `requirements.txt`) provide the connectivity to EKS clusters.
 
-Additional python modules *kuberentes*, *backoff*, and *polling* are required and listed in `requirements.txt`.
+Additional python modules *ansible*, *kuberentes*, *backoff*, *polling*, and *pyyaml* are required and listed in `requirements.txt`.
 
+To run sanity tests, python modules *voluptuous*, *yamllint*, *pycodestyle*, and *pylint* are required and listed in `test-requirements.txt`.
 
 Example Playbook
 ----------------
