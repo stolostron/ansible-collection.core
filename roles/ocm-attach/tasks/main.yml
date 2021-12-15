@@ -23,7 +23,7 @@
       kubernetes.core.k8s:
         state: present
         kubeconfig: "{{ ocm_hub_kubeconfig }}"
-        template: managedcluster.yml
+        template: managedcluster.yml.j2
         wait: true
         wait_condition:
           type: 'HubAcceptedManagedCluster'
@@ -35,7 +35,7 @@
       kubernetes.core.k8s:
         state: present
         kubeconfig: "{{ ocm_hub_kubeconfig }}"
-        template: klusterletaddonconfig.yml
+        template: klusterletaddonconfig.yml.j2
   when:
     - not ocm_mc_registered
 

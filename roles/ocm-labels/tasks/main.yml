@@ -65,14 +65,14 @@
       kubernetes.core.k8s:
         state: patched
         kubeconfig: "{{ ocm_hub_kubeconfig }}"
-        template: mc_delete_label.yml
+        template: mc_delete_label.yml.j2
       loop: "{{ clusterlist_delete_keys }}"
 
     - name: '[REPLACE] Add User Labels to ManagedCluster'
       kubernetes.core.k8s:
         state: patched
         kubeconfig: "{{ ocm_hub_kubeconfig }}"
-        template: mc_update_label.yml
+        template: mc_update_label.yml.j2
       loop: "{{ userlist_update_keys }}"
   when: ocm_merge_type == 'replace'
 
@@ -84,7 +84,7 @@
       kubernetes.core.k8s:
         state: patched
         kubeconfig: "{{ ocm_hub_kubeconfig }}"
-        template: mc_update_label.yml
+        template: mc_update_label.yml.j2
       loop: "{{ userlist_update_keys }}"
   when: ocm_merge_type == 'update'
 
@@ -96,7 +96,7 @@
       kubernetes.core.k8s:
         state: patched
         kubeconfig: "{{ ocm_hub_kubeconfig }}"
-        template: mc_update_label.yml
+        template: mc_update_label.yml.j2
       loop: "{{ userlist_update_keys }}"
   when: ocm_merge_type == 'preserve'
 
@@ -108,6 +108,6 @@
       kubernetes.core.k8s:
         state: patched
         kubeconfig: "{{ ocm_hub_kubeconfig }}"
-        template: mc_delete_label.yml
+        template: mc_delete_label.yml.j2
       loop: "{{ userlist_delete_keys }}"
   when: ocm_merge_type == 'delete'
