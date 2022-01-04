@@ -5,6 +5,7 @@ plugins/modules/import_eks.py import-3.6 # TODO issue #32
 plugins/modules/import_eks.py import-3.7 # TODO issue #32
 plugins/modules/import_eks.py import-3.8 # TODO issue #32
 plugins/modules/import_eks.py import-3.9 # TODO issue #32
+plugins/modules/import_eks.py import-3.10 # TODO issue #32
 plugins/modules/import_eks.py compile-2.6!skip # Python 2.x is not supported
 plugins/modules/import_eks.py compile-2.7!skip # Python 2.x is not supported
 plugins/modules/import_eks.py pylint:ansible-bad-module-import # TODO issue #33
@@ -15,6 +16,7 @@ plugins/module_utils/import_utils.py import-3.6 # TODO issue #32
 plugins/module_utils/import_utils.py import-3.7 # TODO issue #32
 plugins/module_utils/import_utils.py import-3.8 # TODO issue #32
 plugins/module_utils/import_utils.py import-3.9 # TODO issue #32
+plugins/module_utils/import_utils.py import-3.10 # TODO issue #32
 plugins/module_utils/import_utils.py compile-2.6!skip # Python 2.x is not supported
 plugins/module_utils/import_utils.py compile-2.7!skip # Python 2.x is not supported
 plugins/module_utils/import_utils.py compile-3.5!skip # Python 3.5 is not supported
