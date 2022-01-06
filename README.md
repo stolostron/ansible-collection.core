@@ -8,15 +8,15 @@ Dynamic Inventory for RHACM (pending)
 
 ## Roles
 
-[ocm-install-core](roles/ocm-install-core/README.md)
+[ocm_install_core](roles/ocm_install_core/README.md)
 
-[ocm-install-observability](roles/ocm-install-observability/README.md)
+[ocm_install_observability](roles/ocm_install_observability/README.md)
 
 ocm-uninstall (pending)
 
-[ocm-attach](roles/ocm-attach/README.md)
+[ocm_attach](roles/ocm_attach/README.md)
 
-ocm-detach (pending)
+ocm_detach (pending)
 
 ## Modules
 
