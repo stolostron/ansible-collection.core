@@ -3,8 +3,6 @@ ocm_install_managedserviceaccount
 
 Installs [Managed Service Account Addon](https://github.com/open-cluster-management-io/managed-serviceaccount) onto Red Hat Advanced Cluster Management Operator hub cluster via a Helm chart.
 
-If a Managed Service Account Helm release already exists...
-
 Requirements
 ------------
 
@@ -38,6 +36,13 @@ The *kubernetes.core* collection from galaxy provides the capability to drive He
 ```yaml
 collections:
   - kubernetes.core
+```
+
+The controlling machine must have [Helm](https://github.com/helm/helm/releases) installed:
+
+```bash
+$ which helm
+/usr/local/bin/helm
 ```
 
 Example Playbook
