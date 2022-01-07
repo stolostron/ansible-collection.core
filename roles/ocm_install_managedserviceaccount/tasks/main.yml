@@ -1,0 +1,17 @@
+---
+
+- name: Add helm repo
+  kubernetes.core.helm_repository:
+    name: ocm
+    repo_url: "https://open-cluster-management.oss-us-west-1.aliyuncs.com"
+
+- name: Installing managed-serviceaccount chart
+  kubernetes.core.helm:
+    kubeconfig: "{{ ocm_hub_kubeconfig }}"
+    release_name: managed-serviceaccount
+    release_namespace: open-cluster-management-addon
+    chart_ref: ocm/managed-serviceaccount
+    create_namespace: True
+    update_repo_cache: True
+    wait: True
+
