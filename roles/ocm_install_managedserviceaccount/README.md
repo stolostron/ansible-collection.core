@@ -1,38 +1,73 @@
-Role Name
+ocm_install_managedserviceaccount
 =========
 
-A brief description of the role goes here.
+Installs [Managed Service Account Addon](https://github.com/open-cluster-management-io/managed-serviceaccount) onto Red Hat Advanced Cluster Management Operator hub cluster via a Helm chart.
+
+If a Managed Service Account Helm release already exists...
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+The hosting cluster must already have Red Hat Advanced Cluster Management Operator installed and running:
+
+```bash
+$ oc get mch --all-namespaces
+NAMESPACE                 NAME              STATUS    AGE
+open-cluster-management   multiclusterhub   Running   19h
+```
+
+The controlling machine must have [Helm](https://github.com/helm/helm/releases) installed:
+
+```bash
+$ which helm
+/usr/local/bin/helm
+```
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+| Variable                | Required           | Default                            | Comments                                 |
+|-------------------------|--------------------|------------------------------------|------------------------------------------|
+| ocm_hub_kubeconfig      | yes                |                                    | Path to the kubeconfig file of the Red Hat Advanced Cluster Management hub cluster |
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+The *kubernetes.core* collection from galaxy provides the capability to drive Helm.
+
+```yaml
+collections:
+  - kubernetes.core
+```
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+An example of how to run this role with a well formed inventory
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+`tests/inventory`:
 
-License
--------
+```yaml
+[hub_cluster]
+test-cluster-1 kubeconfig=/path/to/kubeconfig1
 
-BSD
+[all:vars]
+ansible_python_interpreter=/path/to/venv/bin/python
+```
 
-Author Information
-------------------
+`tests/test.yml`:
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+```yaml
+- hosts: hub_cluster
+  connection: local
+  roles:
+    - role: ../../ocm_install_managedserviceaccount
+      vars:
+        ocm_hub_kubeconfig: "{{ hostvars[inventory_hostname].kubeconfig }}"
+```
+
+Run the playbook with the inventory specified.
+
+```bash
+ansible-playbook -i inventory test.yml
+```

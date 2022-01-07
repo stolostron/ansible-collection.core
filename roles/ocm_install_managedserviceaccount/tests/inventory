@@ -1,2 +1,5 @@
-localhost
+[hub_cluster]
+test-cluster-1 kubeconfig=/path/to/kubeconfig1
 
+[all:vars]
+ansible_python_interpreter=/path/to/venv/bin/python

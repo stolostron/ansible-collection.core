@@ -1,5 +1,7 @@
 ---
-- hosts: localhost
-  remote_user: root
+- hosts: hub_cluster
+  connection: local
   roles:
-    - ocm_install_managedserviceaccount
+    - role: ../../ocm_install_managedcluster
+      vars:
+        ocm_hub_kubeconfig: "{{ hostvars[inventory_hostname].kubeconfig }}"
