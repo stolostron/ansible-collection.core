@@ -9,9 +9,9 @@ plugin_type: inventory
 short_description: OCM managedcluster inventory
 
 author:
-- "Hao Liu (@TheRealHaoLiu) <haoli@redhat.com>"
-- "Hanqiu Zhang (@hanqiuzh) <hanzhang@redhat.com>"
-- "Nathan Weatherly (@nathanweatherly) <nweather@redhat.com>"
+- "Hao Liu (@TheRealHaoLiu)"
+- "Hanqiu Zhang (@hanqiuzh)"
+- "Nathan Weatherly (@nathanweatherly)"
 
 description:
 - Fetch ocm managedclusters, and group clusters by labels.

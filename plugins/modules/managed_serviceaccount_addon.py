@@ -11,9 +11,9 @@ module: managed_serviceaccount_addon
 short_description: cluster proxy addon
 
 author:
-- "Hao Liu (@TheRealHaoLiu) <haoli@redhat.com>"
-- "Hanqiu Zhang (@hanqiuzh) <hanzhang@redhat.com>"
-- "Nathan Weatherly (@nathanweatherly) <nweather@redhat.com>"
+- "Hao Liu (@TheRealHaoLiu)"
+- "Hanqiu Zhang (@hanqiuzh)"
+- "Nathan Weatherly (@nathanweatherly)"
 
 description:
 - Use the managed-serviceaccount addon to setup a serviceaccount on a managedcluster with default admin permission,
