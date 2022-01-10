@@ -1,0 +1,33 @@
+---
+
+- name: Remove managed-serviceaccount release
+  kubernetes.core.helm:
+    kubeconfig: "{{ ocm_hub_kubeconfig }}"
+    release_name: managed-serviceaccount
+    release_namespace: open-cluster-management-addon
+    release_state: absent
+
+- name: Delete open-cluster-management-addon Namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ocm_hub_kubeconfig }}"
+    state: absent
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: open-cluster-management-addon
+
+- name: Delete ManagedServiceAccount CRD
+  kubernetes.core.k8s:
+      kubeconfig: "{{ ocm_hub_kubeconfig }}"
+      state: absent
+      definition:
+        apiVersion: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        metadata:
+          name: managedserviceaccounts.authentication.open-cluster-management.io
+
+- name: Remove helm repo
+  kubernetes.core.helm_repository:
+    name: ocm
+    repo_state: absent
