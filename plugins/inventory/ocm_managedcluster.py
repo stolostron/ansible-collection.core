@@ -32,8 +32,7 @@ options:
         required: False
     cluster_groups:
         description:
-        - Optional list of cluster selection settings. If no items are provided, the default kubeconfig
-            I(~/.kube/config) will be used as the hub, and will list all managedclusters on the hub.
+        - Optional list of cluster selection settings.
         type: list
         required: False
         suboptions:
@@ -44,7 +43,8 @@ options:
                 required: True
             label_selectors:
                 description:
-                - a list of key=value strings to filter the managedclusters. Only clusters match all label selectors will be returned in the group.
+                - A list of key=value strings to filter the managedclusters. Only clusters match all label selectors will be returned in the group.
+                    If not provided, all clusters will be included.
                 type: list
                 required: False
 '''
