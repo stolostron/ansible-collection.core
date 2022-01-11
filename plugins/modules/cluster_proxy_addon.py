@@ -11,9 +11,9 @@ module: cluster_proxy_addon
 short_description: cluster proxy addon
 
 author:
-- "Hao Liu (@TheRealHaoLiu) <haoli@redhat.com>"
-- "Hanqiu Zhang (@hanqiuzh) <hanzhang@redhat.com>"
-- "Nathan Weatherly (@nathanweatherly) <nweather@redhat.com>"
+- "Hao Liu (@TheRealHaoLiu)"
+- "Hanqiu Zhang (@hanqiuzh)"
+- "Nathan Weatherly (@nathanweatherly)"
 
 description: Install the cluster proxy addon, and get proxy url from the addon. cluster-admin permission on hub is assumed to enable the plugin.
 
