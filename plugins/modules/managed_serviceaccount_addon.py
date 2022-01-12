@@ -21,7 +21,7 @@ description:
 
 options:
     hub_kubeconfig:
-        description: Path to the Hub cluster kubeconfig.
+        description: Path to the Hub cluster kubeconfig. Can also be specified via K8S_AUTH_KUBECONFIG environment variable.
         type: str
         required: True
     wait:
@@ -67,7 +67,7 @@ import base64
 import traceback
 
 from ansible.errors import AnsibleError
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule, env_fallback
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
 from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
     check_addon_available,
@@ -358,7 +358,7 @@ def execute_module(module: AnsibleModule):
 
 def main():
     argument_spec = dict(
-        hub_kubeconfig=dict(type='str', required=True),
+        hub_kubeconfig=dict(type='str', required=True, fallback=(env_fallback, ['K8S_AUTH_KUBECONFIG'])),
         managed_cluster=dict(type='str', required=True),
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60),

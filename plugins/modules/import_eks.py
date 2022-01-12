@@ -25,7 +25,7 @@ options:
     type: str
     required: yes
   hub_kubeconfig:
-    description: Path to the ACM Hub cluster kubeconfig
+    description: Path to the ACM Hub cluster kubeconfig. Can also be specified via K8S_AUTH_KUBECONFIG environment variable.
     type: str
     required: yes
   wait:
@@ -195,7 +195,7 @@ except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
 from ansible.errors import AnsibleError
-from ansible.module_utils.basic import missing_required_lib, to_native
+from ansible.module_utils.basic import missing_required_lib, to_native, env_fallback
 from ansible_collections.ocmplus.cm.plugins.module_utils import import_utils
 from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_aws_connection_info
@@ -304,7 +304,7 @@ def main():
     # define available arguments/parameters a user can pass to the module
     argument_spec = dict(
         eks_cluster_name=dict(type='str', required=True),
-        hub_kubeconfig=dict(type='str', required=True),
+        hub_kubeconfig=dict(type='str', required=True, fallback=(env_fallback, ['K8S_AUTH_KUBECONFIG'])),
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60),
         addons=dict(

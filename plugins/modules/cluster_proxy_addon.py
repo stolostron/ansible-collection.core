@@ -19,7 +19,7 @@ description: Install the cluster proxy addon, and get proxy url from the addon. 
 
 options:
     hub_kubeconfig:
-        description: Path to the Hub cluster kubeconfig
+        description: Path to the Hub cluster kubeconfig. Can also be specified via K8S_AUTH_KUBECONFIG environment variable.
         type: str
         required: True
     wait:
@@ -60,7 +60,7 @@ err:
 '''
 
 from ansible.errors import AnsibleError
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule, env_fallback
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
 from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
     ensure_managed_cluster_addon_enabled,
@@ -167,7 +167,7 @@ def execute_module(module: AnsibleModule):
 
 def main():
     argument_spec = dict(
-        hub_kubeconfig=dict(type='str', required=True),
+        hub_kubeconfig=dict(type='str', required=True, fallback=(env_fallback, ['K8S_AUTH_KUBECONFIG'])),
         managed_cluster=dict(type='str', required=True),
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60)

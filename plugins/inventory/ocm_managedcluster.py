@@ -103,6 +103,22 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
     def setup(self, cache, cache_key):
         cluster_groups = self.get_option("cluster_groups")
         hub_connection = self.get_option("hub_kubeconfig")
+        # add hub entry
+        hub_host_name = 'local-cluster'
+        self.inventory.add_host(hub_host_name)
+        self.inventory.add_group('hub')
+        self.inventory.add_child('hub', hub_host_name)
+        self.inventory.set_variable(
+            hub_host_name, 'cluster_name', 'local-cluster')
+
+        if not hub_connection:
+            import os
+            # fallback to use env var
+            hub_connection = os.getenv('K8S_AUTH_KUBECONFIG')
+        else:
+            # only set kubeconfig to hub's hostvar if it's provided specifically by user
+            self.inventory.set_variable(hub_host_name, 'kubeconfig', hub_connection)
+
         self.inventory.set_variable("all", "ansible_python_interpreter", sys.executable)
         if IMP_ERR:
             raise OCMInventoryException(IMP_ERR)
@@ -134,16 +150,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             client = kubernetes.dynamic.DynamicClient(
                 kubernetes.client.api_client.ApiClient()
             )
-
-        # add hub entry
-        hub_host_name = 'local-cluster'
-        self.inventory.add_host(hub_host_name)
-        self.inventory.add_group('hub')
-        self.inventory.add_child('hub', hub_host_name)
-        self.inventory.set_variable(
-            hub_host_name, 'cluster_name', 'local-cluster')
-        self.inventory.set_variable(
-            hub_host_name, 'kubeconfig', hub_connection)
 
         # add groups
         if cluster_groups:
