@@ -1,0 +1,41 @@
+name: Galaxy Publish Check
+on:
+  # Run publish check against all pushes (direct commits, also merged PRs), Pull Requests
+  push:
+    branches: [ main, release-* ]
+  pull_request:
+    branches: [ main, release-* ]
+  # manual trigger
+  workflow_dispatch:
+
+env:
+  NAMESPACE: ocmplus
+  COLLECTION_NAME: cm
+  COLLECTION_VERSION: 0.0.1 
+
+jobs:
+  check_publish:
+    name: Check Galaxy Publish
+    strategy:
+      matrix:
+        ansible:
+          - stable-2.12
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hello World
+        run: |
+          echo 'HELLO WORLD'
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install ansible-base (${{ matrix.ansible }})
+        run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+      - name: Install galaxy-importer
+        run: pip install galaxy-importer --disable-pip-version-check
+      - name: Build collection artifact file
+        run: ansible-galaxy collection build
+      - name: Run galaxy-importer
+        run: python -m galaxy_importer.main ${{env.NAMESPACE}}-${{env.COLLECTION_NAME}}-${{env.COLLECTION_VERSION}}.tar.gz
