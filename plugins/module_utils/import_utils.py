@@ -1,11 +1,11 @@
 from __future__ import (absolute_import, division, print_function)
-from ansible.errors import AnsibleError
-
 __metaclass__ = type
 
 # TODO: learn from other module import error handling and come up with an convention
 import base64
 import traceback
+
+from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 
 IMP_ERR = {}
 try:
@@ -14,8 +14,7 @@ except ImportError as e:
     IMP_ERR['yaml'] = {'error': traceback.format_exc(),
                        'exception': e}
 try:
-    from kubernetes.dynamic import DynamicClient
-    from kubernetes.dynamic.exceptions import DynamicApiError, NotFoundError
+    from kubernetes.dynamic.exceptions import DynamicApiError, NotFoundError, ResourceNotFoundError
 except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
@@ -80,7 +79,7 @@ def should_import(managedcluster):
     return True
 
 
-def ensure_managedcluster(hub_client, cluster_name, timeout):
+def ensure_managedcluster(module: AnsibleModule, hub_client, cluster_name, timeout=60):
     """
     ensure_managedcluster checks and waits until the managedCluster is successfully imported.
     :param hub_client: the ACM Hub cluster's API client
@@ -88,6 +87,10 @@ def ensure_managedcluster(hub_client, cluster_name, timeout):
     :param timeout: number of seconds to wait for managedcluster status field to be available
     :return: the managedCluster object
     """
+    if 'k8s' in IMP_ERR:
+        module.fail_json(msg=missing_required_lib('kubernetes'),
+                         exception=IMP_ERR['k8s']['exception'])
+
     managedcluster_api = hub_client.resources.get(
         api_version="cluster.open-cluster-management.io/v1",
         kind="ManagedCluster")
@@ -96,24 +99,29 @@ def ensure_managedcluster(hub_client, cluster_name, timeout):
         managedcluster = managedcluster_api.get(name=cluster_name)
     except NotFoundError:
         if 'jinja2' in IMP_ERR:
-            raise AnsibleError(
-                "Error importing Kubernetes: " + IMP_ERR['k8s']['error'])
+            module.fail_json(msg=missing_required_lib(
+                'jinja2'), exception=IMP_ERR['jinja2']['exception'])
         if 'yaml' in IMP_ERR:
-            raise AnsibleError("Error importing yaml: " +
-                               IMP_ERR['yaml']['error'])
+            module.fail_json(msg=missing_required_lib('yaml'),
+                             exception=IMP_ERR['yaml']['exception'])
         new_managedcluster_raw = Template(MANAGEDCLUSTER_TEMPLATE).render(
             managedcluster_name=cluster_name)
         new_managedcluster = yaml.safe_load(new_managedcluster_raw)
-        managedcluster_api.create(new_managedcluster)
+        try:
+            managedcluster_api.create(new_managedcluster)
+        except DynamicApiError as e:
+            module.fail_json(
+                msg=f'failed to create managedcluster {cluster_name}', exception=e)
+
         if not wait_until_resource_status_available(managedcluster_api, None, cluster_name, timeout):
-            raise AnsibleError(
-                "Error timed out waiting for managedcluster {0} status field to be available".format(cluster_name))
+            module.fail_json(
+                msg=f"Error timed out waiting for managedcluster {cluster_name} status field to be available")
         managedcluster = managedcluster_api.get(name=cluster_name)
 
     return managedcluster
 
 
-def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons, timeout):
+def ensure_klusterletaddonconfig(module: AnsibleModule, hub_client, eks_cluster_name, addons, timeout=60):
     """
     ensure_klusterletaddonconfig creates the Klusterlet addon config if it's
     not already existed, and returns the config object.
@@ -124,8 +132,9 @@ def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons, timeout):
     :return: the Klusterlet addon config object
     """
     if 'k8s' in IMP_ERR:
-        raise AnsibleError("Error importing Kubernetes: " +
-                           IMP_ERR['k8s']['error'])
+        module.fail_json(msg=missing_required_lib('kubernetes'),
+                         exception=IMP_ERR['k8s']['exception'])
+
     klusterletaddonconfig_api = hub_client.resources.get(
         api_version="agent.open-cluster-management.io/v1",
         kind="KlusterletAddonConfig")
@@ -135,11 +144,11 @@ def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons, timeout):
         # TODO: ensure klusterletaddonconfig match params[addons] and patch if needed
     except NotFoundError:
         if 'jinja2' in IMP_ERR:
-            raise AnsibleError(
-                "Error importing Kubernetes: " + IMP_ERR['k8s']['error'])
+            module.fail_json(msg=missing_required_lib(
+                'jinja2'), exception=IMP_ERR['jinja2']['exception'])
         if 'yaml' in IMP_ERR:
-            raise AnsibleError("Error importing yaml: " +
-                               IMP_ERR['yaml']['error'])
+            module.fail_json(msg=missing_required_lib('yaml'),
+                             exception=IMP_ERR['yaml']['exception'])
         new_klusterletaddonconfig_raw = Template(KLUSTERLETADDONCONFIG_TEMPLATE).render(
             ocm_managedcluster_name=eks_cluster_name,
             ocm_iam_policy_controller=addons['iam_policy_controller'],
@@ -150,16 +159,22 @@ def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons, timeout):
         )
         new_klusterletaddonconfig = yaml.safe_load(
             new_klusterletaddonconfig_raw)
-        klusterletaddonconfig_api.create(new_klusterletaddonconfig)
+        try:
+            klusterletaddonconfig_api.create(new_klusterletaddonconfig)
+        except DynamicApiError as e:
+            module.fail_json(
+                msg=f'failed to create klusterletaddonconfig {eks_cluster_name}', exception=e)
+
         if not wait_until_resource_available(klusterletaddonconfig_api, None, eks_cluster_name, timeout):
-            raise AnsibleError(
-                "Error timed out waiting for klusterletaddonconfig {0} to be available".format(eks_cluster_name))
+            module.fail_json(
+                msg=f"Error timed out waiting for klusterletaddonconfig {eks_cluster_name} to be available")
+
         klusterletaddonconfig = klusterletaddonconfig_api.get(name=eks_cluster_name,
                                                               namespace=eks_cluster_name)
     return klusterletaddonconfig
 
 
-def get_import_yamls(hub_client, cluster_name, timeout):
+def get_import_yamls(module, hub_client, cluster_name, timeout):
     """
     Generates the yamls files for importing a managed cluster into an ACM hub cluster
     :param hub_client: The dynamic Kubernetes client based on the user provided ACM hub kubeconfig
@@ -168,31 +183,38 @@ def get_import_yamls(hub_client, cluster_name, timeout):
     :return: [yaml as a dict for CRDs, list of yamls as dicts for import objects]
     """
     if 'yaml' in IMP_ERR:
-        raise AnsibleError("Error importing yaml: " + IMP_ERR['yaml']['error'])
+        module.fail_json(msg=missing_required_lib('yaml'),
+                         exception=IMP_ERR['yaml']['exception'])
+
     # Wait for import secret to be generated
     secret_api = hub_client.resources.get(api_version="v1", kind="Secret")
-    secret_name = "{0}-import".format(cluster_name)
-    if not wait_until_secret_populated(secret_api, cluster_name, secret_name, timeout):
-        raise AnsibleError(
-            "Error timed out waiting for secret {0} to be populated".format(secret_name))
-    import_secret = secret_api.get(name=secret_name, namespace=cluster_name)
+    secret_name = f"{cluster_name}-import"
 
-    crds_yaml_b64_str = import_secret['data']['crds.yaml']
-    crds_yaml_b64_bytes = crds_yaml_b64_str.encode('ascii')
-    crds_yaml_bytes = base64.b64decode(crds_yaml_b64_bytes)
-    crds_yaml = crds_yaml_bytes.decode('ascii')
-    crds_yaml_ret = yaml.safe_load(crds_yaml)
+    try:
+        if not wait_until_secret_populated(secret_api, cluster_name, secret_name, timeout):
+            module.fail_json(
+                msg=f"Error timed out waiting for secret {secret_name} to be populated")
+        import_secret = secret_api.get(
+            name=secret_name, namespace=cluster_name)
+        crds_yaml_b64_str = import_secret['data']['crds.yaml']
+        crds_yaml_b64_bytes = crds_yaml_b64_str.encode('ascii')
+        crds_yaml_bytes = base64.b64decode(crds_yaml_b64_bytes)
+        crds_yaml = crds_yaml_bytes.decode('ascii')
+        crds_yaml_ret = yaml.safe_load(crds_yaml)
 
-    import_yaml_b64_str = import_secret['data']['import.yaml']
-    import_yaml_b64_bytes = import_yaml_b64_str.encode('ascii')
-    import_yaml_bytes = base64.b64decode(import_yaml_b64_bytes)
-    import_yaml = import_yaml_bytes.decode('ascii')
-    import_yaml_ret = yaml.safe_load_all(import_yaml)
+        import_yaml_b64_str = import_secret['data']['import.yaml']
+        import_yaml_b64_bytes = import_yaml_b64_str.encode('ascii')
+        import_yaml_bytes = base64.b64decode(import_yaml_b64_bytes)
+        import_yaml = import_yaml_bytes.decode('ascii')
+        import_yaml_ret = yaml.safe_load_all(import_yaml)
 
-    return crds_yaml_ret, import_yaml_ret
+        return crds_yaml_ret, import_yaml_ret
+    except DynamicApiError as e:
+        module.fail_json(
+            msg=f'failed to get import yamls for {cluster_name}', exception=e)
 
 
-def dynamic_apply(dynamic_client, resource_dict):
+def dynamic_apply(module, dynamic_client, resource_dict):
     """
     Applying resources with the provided dynamic client
     :param dynamic_client: Dynamic client
@@ -200,21 +222,19 @@ def dynamic_apply(dynamic_client, resource_dict):
     :return: None
     """
     if 'k8s' in IMP_ERR:
-        raise AnsibleError("Error importing Kubernetes: " +
-                           IMP_ERR['k8s']['error'])
+        module.fail_json(msg=missing_required_lib('kubernetes'),
+                         exception=IMP_ERR['k8s']['exception'])
+
     object_api_client = dynamic_client.resources.get(
         api_version=resource_dict['apiVersion'],
         kind=resource_dict['kind']
     )
 
-    try:
-        object_api_client.create(resource_dict)
-    except DynamicApiError as exc:
-        # TODO retry depending on error type
-        raise AnsibleError(f'Failed to create object: {exc.body}')
+    object_api_client.create(resource_dict)
+    # TODO retry depending on error type
 
 
-def get_managed_cluster(hub_client: DynamicClient, managed_cluster_name: str):
+def get_managed_cluster(hub_client, managed_cluster_name: str):
     managed_cluster_api = hub_client.resources.get(
         api_version="cluster.open-cluster-management.io/v1",
         kind="ManagedCluster",
@@ -234,13 +254,16 @@ def is_klusterlet_exists(dynamic_client):
     :param dynamic_client: Dynamic client
     :return: True if klusterlet exists, False if klusterlet does not exists.
     """
-    klusterlet_api = dynamic_client.resources.get(
-        api_version="operator.open-cluster-management.io/v1",
-        kind="Klusterlet",
-    )
+    try:
+        klusterlet_api = dynamic_client.resources.get(
+            api_version="operator.open-cluster-management.io/v1",
+            kind="Klusterlet",
+        )
+    except ResourceNotFoundError:
+        return False
 
     try:
-        ns = klusterlet_api.get(name="klusterlet")
+        klusterlet_api.get(name="klusterlet")
         return True
     except NotFoundError:
         return False

@@ -59,23 +59,25 @@ err:
   sample: null
 '''
 
-from ansible.errors import AnsibleError
-from ansible.module_utils.basic import AnsibleModule, env_fallback
+import traceback
+
+from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
 from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
     ensure_managed_cluster_addon_enabled,
     wait_for_addon_available,
 )
 
+IMP_ERR = {}
 try:
     from kubernetes.dynamic.exceptions import NotFoundError
     import kubernetes
 except ImportError as e:
-    # kubernetes are always used, so if cannot be imported, will raise error directly
-    raise AnsibleError("Error importing Kubernetes: " + e) from e
+    IMP_ERR['k8s'] = {'error': traceback.format_exc(),
+                      'exception': e}
 
 
-def ensure_cluster_proxy_feature_enabled(hub_client: kubernetes.dynamic.DynamicClient) -> dict:
+def ensure_cluster_proxy_feature_enabled(hub_client) -> dict:
     # get all instance of mch
     mch_api = hub_client.resources.get(
         api_version="operator.open-cluster-management.io/v1",
@@ -102,7 +104,7 @@ def ensure_cluster_proxy_feature_enabled(hub_client: kubernetes.dynamic.DynamicC
     return mch
 
 
-def get_hub_proxy_route(hub_client: kubernetes.dynamic.DynamicClient, ocm_namespace: str):
+def get_hub_proxy_route(hub_client, ocm_namespace: str):
     route_api = hub_client.resources.get(
         api_version="route.openshift.io/v1", kind="Route")
     try:
@@ -113,7 +115,7 @@ def get_hub_proxy_route(hub_client: kubernetes.dynamic.DynamicClient, ocm_namesp
     return route.spec.host
 
 
-def get_ocm_install_namespace(hub_client: kubernetes.dynamic.DynamicClient):
+def get_ocm_install_namespace(hub_client):
     mch_api = hub_client.resources.get(
         api_version="operator.open-cluster-management.io/v1",
         kind="MultiClusterHub",
@@ -127,6 +129,11 @@ def get_ocm_install_namespace(hub_client: kubernetes.dynamic.DynamicClient):
 
 
 def execute_module(module: AnsibleModule):
+    if 'k8s' in IMP_ERR:
+        # we will need k8s for this module
+        module.fail_json(msg=missing_required_lib('kubernetes'),
+                         exception=IMP_ERR['k8s']['exception'])
+
     managed_cluster_name = module.params['managed_cluster']
 
     hub_kubeconfig = kubernetes.config.load_kube_config(
@@ -145,11 +152,12 @@ def execute_module(module: AnsibleModule):
 
     ensure_cluster_proxy_feature_enabled(hub_client)
     cluster_proxy_addon = ensure_managed_cluster_addon_enabled(
-        hub_client, "cluster-proxy", managed_cluster_name, "open-cluster-management-agent-addon")
+        module, hub_client, "cluster-proxy", managed_cluster_name, "open-cluster-management-agent-addon")
 
     wait = module.params['wait']
     if wait:
-        wait_for_addon_available(hub_client, cluster_proxy_addon, timeout)
+        wait_for_addon_available(
+            module, hub_client, cluster_proxy_addon, timeout)
 
     ocm_namespace = get_ocm_install_namespace(hub_client)
     if ocm_namespace is None:
@@ -167,7 +175,8 @@ def execute_module(module: AnsibleModule):
 
 def main():
     argument_spec = dict(
-        hub_kubeconfig=dict(type='str', required=True, fallback=(env_fallback, ['K8S_AUTH_KUBECONFIG'])),
+        hub_kubeconfig=dict(type='str', required=True, fallback=(
+            env_fallback, ['K8S_AUTH_KUBECONFIG'])),
         managed_cluster=dict(type='str', required=True),
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60)
