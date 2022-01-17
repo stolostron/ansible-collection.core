@@ -102,7 +102,7 @@ def ensure_managedcluster(hub_client, cluster_name, timeout):
         new_managedcluster_raw = Template(MANAGEDCLUSTER_TEMPLATE).render(managedcluster_name=cluster_name)
         new_managedcluster = yaml.safe_load(new_managedcluster_raw)
         managedcluster_api.create(new_managedcluster)
-        if not wait_until_resource_status_available(managedcluster_api, None, cluster_name, 60):
+        if not wait_until_resource_status_available(managedcluster_api, None, cluster_name, timeout):
             raise AnsibleError("Error timed out waiting for managedcluster {0} status field to be available".format(cluster_name))
         managedcluster = managedcluster_api.get(name=cluster_name)
 
@@ -143,7 +143,7 @@ def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons, timeout):
         )
         new_klusterletaddonconfig = yaml.safe_load(new_klusterletaddonconfig_raw)
         klusterletaddonconfig_api.create(new_klusterletaddonconfig)
-        if not wait_until_resource_available(klusterletaddonconfig_api, None, eks_cluster_name, 60):
+        if not wait_until_resource_available(klusterletaddonconfig_api, None, eks_cluster_name, timeout):
             raise AnsibleError("Error timed out waiting for klusterletaddonconfig {0} to be available".format(eks_cluster_name))
         klusterletaddonconfig = klusterletaddonconfig_api.get(name=eks_cluster_name,
                                                               namespace=eks_cluster_name)
@@ -163,7 +163,7 @@ def get_import_yamls(hub_client, cluster_name, timeout):
     # Wait for import secret to be generated
     secret_api = hub_client.resources.get(api_version="v1", kind="Secret")
     secret_name = "{0}-import".format(cluster_name)
-    if not wait_until_secret_populated(secret_api, cluster_name, secret_name, 60):
+    if not wait_until_secret_populated(secret_api, cluster_name, secret_name, timeout):
         raise AnsibleError("Error timed out waiting for secret {0} to be populated".format(secret_name))
     import_secret = secret_api.get(name=secret_name, namespace=cluster_name)
 
