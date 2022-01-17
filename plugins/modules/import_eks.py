@@ -1,6 +1,13 @@
 #!/usr/bin/python
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import (absolute_import, division, print_function)
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_aws_connection_info
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible_collections.ocmplus.cm.plugins.module_utils import import_utils
+from ansible.module_utils.basic import missing_required_lib, to_native
+from ansible.errors import AnsibleError
+import traceback
+import logging
 
 __metaclass__ = type
 
@@ -180,8 +187,6 @@ err:
 '''
 
 
-import logging
-import traceback
 IMP_ERR = {}
 try:
     import boto3
@@ -194,11 +199,6 @@ try:
 except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
-from ansible.errors import AnsibleError
-from ansible.module_utils.basic import missing_required_lib, to_native
-from ansible_collections.ocmplus.cm.plugins.module_utils import import_utils
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_aws_connection_info
 
 try:
     from awscli.customizations.eks.get_token import STSClientFactory, TokenGenerator
@@ -241,16 +241,19 @@ def execute_module(module):
 
     # TODO: validate hub connection and fail early if not hub
     # The Hub kubeconfig is loaded onto kubernetes.client.Configuration
-    kubernetes.config.load_kube_config(config_file=module.params['hub_kubeconfig'])
+    kubernetes.config.load_kube_config(
+        config_file=module.params['hub_kubeconfig'])
     hub_client = kubernetes.dynamic.DynamicClient(
         kubernetes.client.api_client.ApiClient()
     )
 
     # TODO: handle error if eks cluster does not exist or unable to connect
     try:
-        eks_kubeconfig = get_eks_kubeconfig(eks_conn, sts_token, eks_cluster_name)
-    except:
-        module.fail_json(msg="Error no cluster found for name: {0}".format(eks_cluster_name))
+        eks_kubeconfig = get_eks_kubeconfig(
+            eks_conn, sts_token, eks_cluster_name)
+    except Exception:
+        module.fail_json(
+            msg="Error no cluster found for name: {0}".format(eks_cluster_name))
 
     eks_kubeconfig.verify_ssl = False
     eks_kube_client = kubernetes.dynamic.DynamicClient(
@@ -258,22 +261,28 @@ def execute_module(module):
     )
 
     try:
-        managedcluster = import_utils.ensure_managedcluster(hub_client, eks_cluster_name, timeout)
-        import_utils.ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons, timeout)
+        managedcluster = import_utils.ensure_managedcluster(
+            hub_client, eks_cluster_name, timeout)
+        import_utils.ensure_klusterletaddonconfig(
+            hub_client, eks_cluster_name, addons, timeout)
         if import_utils.should_import(managedcluster):
-            if import_utils.is_namespace_exists(eks_kube_client, "open-cluster-management-agent"):
-                module.fail_json(msg="Error open-cluster-management-agent namespace already exists in {0} cluster".format(eks_cluster_name))
+            if import_utils.is_klusterlet_exists(eks_kube_client):
+                module.fail_json(
+                    msg="Error klusterlet already exists in {0} cluster".format(eks_cluster_name))
 
-            crds_yaml, import_yamls = import_utils.get_import_yamls(hub_client, eks_cluster_name, timeout)
+            crds_yaml, import_yamls = import_utils.get_import_yamls(
+                hub_client, eks_cluster_name, timeout)
             try:
                 import_utils.dynamic_apply(eks_kube_client, crds_yaml)
             except AnsibleError as e:
-                logging.error("Error when applying CRD yamls: %s", traceback.format_exc())
+                logging.error("Error when applying CRD yamls: %s",
+                              traceback.format_exc())
             for resource in import_yamls:
                 try:
                     import_utils.dynamic_apply(eks_kube_client, resource)
                 except AnsibleError:
-                    logging.error("Error when applying import yamls: %s", traceback.format_exc())
+                    logging.error(
+                        "Error when applying import yamls: %s", traceback.format_exc())
 
             if wait:
                 managedcluster_api = hub_client.resources.get(
@@ -281,7 +290,8 @@ def execute_module(module):
                     kind="ManagedCluster"
                 )
                 if not import_utils.wait_until_managedcluster_joined(managedcluster_api, eks_cluster_name, timeout):
-                    module.fail_json(msg="Error timed out waiting for managedcluster {0} to join".format(eks_cluster_name))
+                    module.fail_json(
+                        msg="Error timed out waiting for managedcluster {0} to join".format(eks_cluster_name))
     except AnsibleError as e:
         module.fail_json(err=str(e))
 
