@@ -16,6 +16,7 @@
         cert_policy_controller: "{{ cert_policy_controller }}"
       aws_access_key: "{{ aws_access_key }}"
       aws_secret_key: "{{ aws_secret_key }}"
+      region: "{{ region }}"
     loop:
       - "{{ eks_cluster_name }}"
     register: hub_result

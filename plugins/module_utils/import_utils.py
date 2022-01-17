@@ -80,19 +80,17 @@ def should_import(managedcluster):
     return True
 
 
-def ensure_managedcluster(hub_client, cluster_name):
+def ensure_managedcluster(hub_client, cluster_name, timeout):
     """
-    ensure_managedcluster checks and polls until the managedCluster is successfully imported.
+    ensure_managedcluster checks and waits until the managedCluster is successfully imported.
     :param hub_client: the ACM Hub cluster's API client
     :param cluster_name: name of the managedCluster to check
+    :param timeout: number of seconds to wait for managedcluster status field to be available
     :return: the managedCluster object
     """
     managedcluster_api = hub_client.resources.get(
         api_version="cluster.open-cluster-management.io/v1",
         kind="ManagedCluster")
-
-    def check_response(response):
-        return response['status']
 
     try:
         managedcluster = managedcluster_api.get(name=cluster_name)
@@ -104,26 +102,21 @@ def ensure_managedcluster(hub_client, cluster_name):
         new_managedcluster_raw = Template(MANAGEDCLUSTER_TEMPLATE).render(managedcluster_name=cluster_name)
         new_managedcluster = yaml.safe_load(new_managedcluster_raw)
         managedcluster_api.create(new_managedcluster)
-        try:
-            import polling
-            managedcluster = polling.poll(
-                target=lambda: managedcluster_api.get(name=cluster_name),
-                check_success=check_response,
-                step=1,
-                timeout=60,
-            )
-        except ImportError:
-            pass
+        if not wait_until_resource_status_available(managedcluster_api, None, cluster_name, 60):
+            raise AnsibleError("Error timed out waiting for managedcluster {0} status field to be available".format(cluster_name))
+        managedcluster = managedcluster_api.get(name=cluster_name)
+
     return managedcluster
 
 
-def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons):
+def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons, timeout):
     """
     ensure_klusterletaddonconfig creates the Klusterlet addon config if it's
     not already existed, and returns the config object.
     :param hub_client: dynamic client for the ACM hub cluster
     :param eks_cluster_name: name of EKS cluster
     :param addons: a dict of all addons and whether they are enabled/disabled
+    :param timeout: number of seconds to wait for klusterletaddonconfig to be available
     :return: the Klusterlet addon config object
     """
     if 'k8s' in IMP_ERR:
@@ -150,39 +143,29 @@ def ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons):
         )
         new_klusterletaddonconfig = yaml.safe_load(new_klusterletaddonconfig_raw)
         klusterletaddonconfig_api.create(new_klusterletaddonconfig)
+        if not wait_until_resource_available(klusterletaddonconfig_api, None, eks_cluster_name, 60):
+            raise AnsibleError("Error timed out waiting for klusterletaddonconfig {0} to be available".format(eks_cluster_name))
         klusterletaddonconfig = klusterletaddonconfig_api.get(name=eks_cluster_name,
                                                               namespace=eks_cluster_name)
     return klusterletaddonconfig
 
 
-try:
-    import backoff
-
-    @backoff.on_exception(backoff.expo, NotFoundError)
-    def get_import_secret(secret_api, cluster_name):
-        """
-        Fetches the managed cluster import secret with exponential backoff
-        :param secret_api: The Secret API from the ACM hub client
-        :param cluster_name: The name of managed cluster
-        :return: The Secret object
-        """
-        return secret_api.get(name=cluster_name + "-import", namespace=cluster_name)
-except ImportError:
-    raise AnsibleError("Error importing backoff lib: " + traceback.format_exc())
-
-
-def get_import_yamls(hub_client, cluster_name):
+def get_import_yamls(hub_client, cluster_name, timeout):
     """
     Generates the yamls files for importing a managed cluster into an ACM hub cluster
     :param hub_client: The dynamic Kubernetes client based on the user provided ACM hub kubeconfig
     :param cluster_name: The name of the managed cluster to import
+    :param timeout: number of seconds to wait for secret to be available
     :return: [yaml as a dict for CRDs, list of yamls as dicts for import objects]
     """
     if 'yaml' in IMP_ERR:
         raise AnsibleError("Error importing yaml: " + IMP_ERR['yaml']['error'])
     # Wait for import secret to be generated
     secret_api = hub_client.resources.get(api_version="v1", kind="Secret")
-    import_secret = get_import_secret(secret_api, cluster_name)
+    secret_name = "{0}-import".format(cluster_name)
+    if not wait_until_secret_populated(secret_api, cluster_name, secret_name, 60):
+        raise AnsibleError("Error timed out waiting for secret {0} to be populated".format(secret_name))
+    import_secret = secret_api.get(name=secret_name, namespace=cluster_name)
 
     crds_yaml_b64_str = import_secret['data']['crds.yaml']
     crds_yaml_b64_bytes = crds_yaml_b64_str.encode('ascii')
@@ -232,3 +215,95 @@ def get_managed_cluster(hub_client: DynamicClient, managed_cluster_name: str):
         return None
 
     return managed_cluster
+
+def is_namespace_exists(dynamic_client, namespace):
+    """
+    Check if namespace exists
+    :param dynamic_client: Dynamic client
+    :param namespace: The name of the namespace
+    :return: True if namespace exists, False if namespace does not exists.
+    """
+    namespace_api = dynamic_client.resources.get(
+        api_version="v1",
+        kind="Namespace",
+    )
+
+    try:
+        ns = namespace_api.get(name=namespace)
+        return True
+    except NotFoundError:
+        return False
+
+def wait_until_resource_available(resource_api, namespace, name, timeout: int=60):
+    """
+    Block until the given resource is available (or timeout)
+    :param resource_api: The API resource object that will be used to query the API
+    :param namespace: The namespace to query
+    :param name: The name of the resource to query
+    :param timeout: The amount of time in seconds to wait before terminating the query
+    :return: True if resource is available, False if a timeout occured.
+    """
+    for event in resource_api.watch(namespace=namespace, timeout=timeout):
+        if event["type"] == "ADDED" and event["object"].metadata.name == name:
+            return True
+
+    return False
+
+
+def wait_until_resource_status_available(resource_api, namespace, name, timeout: int=60):
+    """
+    Block until the given resource status field is available (or timeout)
+    :param resource_api: The API resource object that will be used to query the API
+    :param namespace: The namespace to query
+    :param name: The name of the resource to query
+    :param timeout: The amount of time in seconds to wait before terminating the query
+    :return: True if resource status field is available, False if a timeout occured.
+    """
+    for event in resource_api.watch(namespace=namespace, timeout=timeout):
+        if event["type"] in ["ADDED", "MODIFIED"] and event["object"].metadata.name == name:
+            if "status" in event["object"].keys():
+                return True
+
+    return False
+
+
+def wait_until_managedcluster_joined(resource_api, cluster_name, timeout: int=60):
+    """
+    Block until the given managedcluster joined (or timeout)
+    :param resource_api: The API resource object that will be used to query the API
+    :param cluster_name: The name of the managedcluster to query
+    :param timeout: The amount of time in seconds to wait before terminating the query
+    :return: True if managedcluster joined, False if a timeout occured.
+    """
+    joined = False
+    for event in resource_api.watch(timeout=timeout):
+        if event["type"] in ["ADDED", "MODIFIED"] and event["object"].metadata.name == cluster_name:
+            if "status" in event["object"].keys():    
+                conditions = event["object"]["status"].get("conditions", [])
+                for condition in conditions:
+                    if condition["type"] == "ManagedClusterJoined":
+                        joined = True
+                        break
+            if joined:
+                break
+
+    return joined
+
+
+def wait_until_secret_populated(resource_api, namespace, secret_name, timeout: int=60):
+    """
+    Block until the given secret populated (or timeout)
+    :param resource_api: The API resource object that will be used to query the API
+    :param namespace: The namespace to query
+    :param secret_name: The name of the secret to query
+    :param timeout: The amount of time in seconds to wait before terminating the query
+    :return: True if secret populated, False if a timeout occured.
+    """
+    for event in resource_api.watch(namespace=namespace, timeout=timeout):
+        if event["type"] in ["ADDED", "MODIFIED"] and event["object"].metadata.name == secret_name:
+            if "data" in event["object"].keys() and "crds.yaml" in event["object"]["data"].keys() and "import.yaml" in event["object"]["data"].keys():
+                return True
+    return False
+
+    
+

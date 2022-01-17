@@ -12,10 +12,10 @@ module: import_eks
 short_description: Import an AWS EKS cluster into an ACM Hub cluster
 
 author:
-    - "Crystal Chun (@CrystalChun)"
-    - "Hao Liu (@TheRealHaoLiu)"
-    - "Hanqiu Zhang (@hanqiuzh)"
-    - "Tara Gu (@taragu)"
+    - "Crystal Chun (@CrystalChun) <cchun@redhat.com>"
+    - "Hao Liu (@TheRealHaoLiu) <haoli@redhat.com>"
+    - "Hanqiu Zhang (@hanqiuzh) <hanzhang@redhat.com>"
+    - "Tara Gu (@taragu) <tgu@redhat.com>"
 
 description: Import an AWS EKS cluster into an ACM Hub cluster
 
@@ -25,7 +25,7 @@ options:
     type: str
     required: yes
   hub_kubeconfig:
-    description: Path to the ACM Hub cluster kubeconfig. Can also be specified via K8S_AUTH_KUBECONFIG environment variable.
+    description: Path to the ACM Hub cluster kubeconfig
     type: str
     required: yes
   wait:
@@ -195,7 +195,7 @@ except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
 from ansible.errors import AnsibleError
-from ansible.module_utils.basic import missing_required_lib, to_native, env_fallback
+from ansible.module_utils.basic import missing_required_lib, to_native
 from ansible_collections.ocmplus.cm.plugins.module_utils import import_utils
 from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_aws_connection_info
@@ -221,6 +221,7 @@ def execute_module(module):
     # If key exists and no value and watch out for wait package in python
     wait = module.params['wait']
     timeout = module.params['timeout']
+    region = module.params['region']
 
     aws_connect_kwargs = get_aws_connection_info(module, boto3=True)[2]
     aws_access_key = aws_connect_kwargs['aws_access_key_id']
@@ -228,6 +229,7 @@ def execute_module(module):
 
     # Create EKS connection
     eks_conn = boto3.client('eks',
+                            region_name=region,
                             aws_access_key_id=aws_access_key,
                             aws_secret_access_key=aws_secret_key)
 
@@ -245,17 +247,24 @@ def execute_module(module):
     )
 
     # TODO: handle error if eks cluster does not exist or unable to connect
-    eks_kubeconfig = get_eks_kubeconfig(eks_conn, sts_token, eks_cluster_name)
+    try:
+        eks_kubeconfig = get_eks_kubeconfig(eks_conn, sts_token, eks_cluster_name)
+    except:
+        module.fail_json(msg="Error no cluster found for name: {0}".format(eks_cluster_name))
+
     eks_kubeconfig.verify_ssl = False
     eks_kube_client = kubernetes.dynamic.DynamicClient(
         kubernetes.client.api_client.ApiClient(configuration=eks_kubeconfig)
     )
 
     try:
-        managedcluster = import_utils.ensure_managedcluster(hub_client, eks_cluster_name)
-        import_utils.ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons)
+        managedcluster = import_utils.ensure_managedcluster(hub_client, eks_cluster_name, timeout)
+        import_utils.ensure_klusterletaddonconfig(hub_client, eks_cluster_name, addons, timeout)
         if import_utils.should_import(managedcluster):
-            crds_yaml, import_yamls = import_utils.get_import_yamls(hub_client, eks_cluster_name)
+            if import_utils.is_namespace_exists(eks_kube_client, "open-cluster-management-agent"):
+                module.fail_json(msg="Error open-cluster-management-agent namespace already exists in {0} cluster".format(eks_cluster_name))
+
+            crds_yaml, import_yamls = import_utils.get_import_yamls(hub_client, eks_cluster_name, timeout)
             try:
                 import_utils.dynamic_apply(eks_kube_client, crds_yaml)
             except AnsibleError as e:
@@ -271,17 +280,8 @@ def execute_module(module):
                     api_version="cluster.open-cluster-management.io/v1",
                     kind="ManagedCluster"
                 )
-                try:
-                    import polling
-                    polling.poll(
-                        target=lambda: managedcluster_api.get(name=eks_cluster_name),
-                        check_success=import_utils.should_import,
-                        step=5,
-                        timeout=timeout,
-                    )
-                except ImportError as e:
-                    module.fail_json(msg=missing_required_lib('polling'), exception=e,
-                                     error=to_native(traceback.format_exc()))
+                if not import_utils.wait_until_managedcluster_joined(managedcluster_api, eks_cluster_name, timeout):
+                    module.fail_json(msg="Error timed out waiting for managedcluster {0} to join".format(eks_cluster_name))
     except AnsibleError as e:
         module.fail_json(err=str(e))
 
@@ -304,7 +304,7 @@ def main():
     # define available arguments/parameters a user can pass to the module
     argument_spec = dict(
         eks_cluster_name=dict(type='str', required=True),
-        hub_kubeconfig=dict(type='str', required=True, fallback=(env_fallback, ['K8S_AUTH_KUBECONFIG'])),
+        hub_kubeconfig=dict(type='str', required=True),
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60),
         addons=dict(
