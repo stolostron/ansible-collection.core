@@ -8,7 +8,7 @@
       eks_cluster_name: "{{ item }}"
       hub_kubeconfig: "{{ hub_kubeconfig }}"
       addons:
-        policy_controller: true
+        policy_controller: "{{ policy_controller }}"
         observability_controller: "{{ observability_controller }}"
         iam_policy_controller: "{{ iam_policy_controller }}"
         search_collector: "{{ search_collector }}"
