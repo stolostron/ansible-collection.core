@@ -1,6 +1,7 @@
 [all:vars]
 aws_access_key=
 aws_secret_key=
+region=
 eks_cluster_name=
 hub_kubeconfig=
 observability_controller=false

@@ -8,7 +8,7 @@
       eks_cluster_name: "{{ item }}"
       hub_kubeconfig: "{{ hub_kubeconfig }}"
       addons:
-        policy_controller: true
+        policy_controller: "{{ policy_controller }}"
         observability_controller: "{{ observability_controller }}"
         iam_policy_controller: "{{ iam_policy_controller }}"
         search_collector: "{{ search_collector }}"
@@ -16,6 +16,7 @@
         cert_policy_controller: "{{ cert_policy_controller }}"
       aws_access_key: "{{ aws_access_key }}"
       aws_secret_key: "{{ aws_secret_key }}"
+      region: "{{ region }}"
     loop:
       - "{{ eks_cluster_name }}"
     register: hub_result
