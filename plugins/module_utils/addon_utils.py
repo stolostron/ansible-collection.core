@@ -3,16 +3,16 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import traceback
-from ansible.errors import AnsibleError
 
-try:
-    from kubernetes.dynamic.exceptions import NotFoundError
-    from kubernetes.dynamic import DynamicClient
-except ImportError as e:
-    # kubernetes are always used, so if cannot be imported, will raise error directly
-    raise AnsibleError("Error importing Kubernetes: " + e) from e
+from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 
 IMP_ERR = {}
+try:
+    from kubernetes.dynamic.exceptions import NotFoundError, DynamicApiError
+except ImportError as e:
+    IMP_ERR['k8s'] = {'error': traceback.format_exc(),
+                      'exception': e}
+
 try:
     import yaml
 except ImportError as e:
@@ -39,7 +39,7 @@ spec:
 """
 
 
-def get_managed_cluster_addon(hub_client: DynamicClient, addon_name: str, cluster_name: str):
+def get_managed_cluster_addon(hub_client, addon_name: str, cluster_name: str):
     managed_cluster_addon_api = hub_client.resources.get(
         api_version="addon.open-cluster-management.io/v1alpha1",
         kind="ManagedClusterAddOn",
@@ -60,15 +60,15 @@ def check_managed_cluster_addon_available(managed_cluster_addon) -> bool:
     return False
 
 
-def check_addon_available(hub_client: DynamicClient, addon_name: str, cluster_name: str):
+def check_addon_available(hub_client, addon_name: str, cluster_name: str):
     addon = get_managed_cluster_addon(hub_client, addon_name, cluster_name)
     return check_managed_cluster_addon_available(addon)
 
 
-def wait_for_addon_available(hub_client: DynamicClient, addon, timeout=60):
+def wait_for_addon_available(module: AnsibleModule, hub_client, addon, timeout=60):
     if 'polling' in IMP_ERR:
         # if polling not available, will simply do no waiting
-        raise AnsibleError("Error importing polling: " + IMP_ERR['polling']['error'])
+        module.fail_json(msg=missing_required_lib('polling'), exception=IMP_ERR['polling']['exception'])
     ret = polling.poll(
         target=lambda: get_managed_cluster_addon(
             hub_client,
@@ -84,16 +84,20 @@ def wait_for_addon_available(hub_client: DynamicClient, addon, timeout=60):
 
 
 def ensure_managed_cluster_addon_enabled(
-    hub_client: DynamicClient,
+    module: AnsibleModule,
+    hub_client,
     addon_name: str,
     managed_cluster_name: str,
     addon_install_namespace: str = "open-cluster-management-agent-addon"
 ):
+    if 'k8s' in IMP_ERR:
+        module.fail_json(msg=missing_required_lib('kubernetes'), exception=IMP_ERR['k8s']['exception'])
+
     managed_cluster_addon_api = hub_client.resources.get(
         api_version="addon.open-cluster-management.io/v1alpha1",
         kind="ManagedClusterAddOn",
     )
-
+    addon = None
     try:
         addon = managed_cluster_addon_api.get(
             name=addon_name,
@@ -101,15 +105,18 @@ def ensure_managed_cluster_addon_enabled(
         )
     except NotFoundError:
         if 'jinja2' in IMP_ERR:
-            raise AnsibleError("Error importing jinja2: " + IMP_ERR['jinja2']['error']) from None
+            module.fail_json(msg=missing_required_lib('jinja2'), exception=IMP_ERR['jinja2']['exception'])
         if 'yaml' in IMP_ERR:
-            raise AnsibleError("Error importing yaml: " + IMP_ERR['yaml']['error']) from None
+            module.fail_json(msg=missing_required_lib('yaml'), exception=IMP_ERR['yaml']['exception'])
         new_addon_yaml = Template(ADDON_TEMPLATE).render(
             addon_name=addon_name,
             managed_cluster_name=managed_cluster_name,
             addon_install_namespace=addon_install_namespace,
         )
         new_addon = yaml.safe_load(new_addon_yaml)
-        addon = managed_cluster_addon_api.create(new_addon)
+        try:
+            addon = managed_cluster_addon_api.create(new_addon)
+        except DynamicApiError as e:
+            module.fail_json(msg=f'failed to create managedclusteraddon {addon_name}', exception=e)
 
     return addon

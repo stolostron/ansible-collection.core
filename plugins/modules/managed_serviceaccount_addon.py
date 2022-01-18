@@ -66,8 +66,7 @@ err:
 import base64
 import traceback
 
-from ansible.errors import AnsibleError
-from ansible.module_utils.basic import AnsibleModule, env_fallback
+from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
 from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
     check_addon_available,
@@ -95,8 +94,8 @@ try:
     import kubernetes
     from kubernetes.dynamic.exceptions import NotFoundError
 except ImportError as e:
-    # kubernetes are always used, so if cannot be imported, will raise error directly
-    raise AnsibleError("Error importing Kubernetes: " + e) from e
+    IMP_ERR['k8s'] = {'error': traceback.format_exc(),
+                      'exception': e}
 
 SERVICE_ACCOUNT_MANIFEST_WORK_TEMPLATE = """
 apiVersion: work.open-cluster-management.io/v1
@@ -170,7 +169,7 @@ spec:
 """
 
 
-def ensure_managed_service_account_feature_enabled(hub_client: kubernetes.dynamic.DynamicClient):
+def ensure_managed_service_account_feature_enabled(hub_client):
     # NOTE: managed service account is not a supported feature in ACM yet and it's currently a upstream proposed feature
     #       for more information see https://github.com/open-cluster-management-io/enhancements/pull/24
     # TODO: the code currently only check if managed-serviceaccount feature is enabled
@@ -185,7 +184,7 @@ def ensure_managed_service_account_feature_enabled(hub_client: kubernetes.dynami
     return cluster_management_addon_api.get(name='managed-serviceaccount')
 
 
-def get_hub_serviceaccount_secret(hub_client: kubernetes.dynamic.DynamicClient, managed_service_account):
+def get_hub_serviceaccount_secret(hub_client, managed_service_account):
     secret_api = hub_client.resources.get(
         api_version="v1",
         kind="Secret",
@@ -205,9 +204,9 @@ def get_hub_serviceaccount_secret(hub_client: kubernetes.dynamic.DynamicClient, 
     return secret
 
 
-def wait_for_serviceaccount_secret(hub_client: kubernetes.dynamic.DynamicClient, managed_service_account, timeout=60):
+def wait_for_serviceaccount_secret(module: AnsibleModule, hub_client, managed_service_account, timeout=60):
     if 'polling' in IMP_ERR:
-        raise AnsibleError("Error importing polling: " + IMP_ERR['polling']['error']) from None
+        module.fail_json(msg=missing_required_lib('polling'), exception=IMP_ERR['polling']['exception'])
 
     managed_service_account_api = hub_client.resources.get(
         api_version="authentication.open-cluster-management.io/v1alpha1",
@@ -235,11 +234,11 @@ def wait_for_serviceaccount_secret(hub_client: kubernetes.dynamic.DynamicClient,
     return is_available
 
 
-def ensure_managed_service_account(hub_client: kubernetes.dynamic.DynamicClient, managed_service_account_addon):
+def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_service_account_addon):
     if 'jinja2' in IMP_ERR:
-        raise AnsibleError("Error importing jinja2: " + IMP_ERR['jinja2']['error']) from None
+        module.fail_json(msg=missing_required_lib('jinja2'), exception=IMP_ERR['jinja2']['exception'])
     if 'yaml' in IMP_ERR:
-        raise AnsibleError("Error importing yaml: " + IMP_ERR['yaml']['error']) from None
+        module.fail_json(msg=missing_required_lib('yaml'), exception=IMP_ERR['yaml']['exception'])
     managed_cluster_name = managed_service_account_addon.metadata.namespace
     managed_cluster_namespace = managed_service_account_addon.metadata.namespace
 
@@ -265,11 +264,11 @@ def ensure_managed_service_account(hub_client: kubernetes.dynamic.DynamicClient,
     return managed_service_account
 
 
-def ensure_managed_service_account_rbac(hub_client, managed_service_account, managed_service_account_addon):
+def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, managed_service_account, managed_service_account_addon):
     if 'jinja2' in IMP_ERR:
-        raise AnsibleError("Error importing jinja2: " + IMP_ERR['jinja2']['error']) from None
+        module.fail_json(msg=missing_required_lib('jinja2'), exception=IMP_ERR['jinja2']['exception'])
     if 'yaml' in IMP_ERR:
-        raise AnsibleError("Error importing yaml: " + IMP_ERR['yaml']['error']) from None
+        module.fail_json(msg=missing_required_lib('yaml'), exception=IMP_ERR['yaml']['exception'])
     managed_cluster_name = managed_service_account_addon.metadata.namespace
     managed_service_account_name = managed_service_account.metadata.name
     managed_service_account_namespace = managed_service_account_addon.spec.installNamespace
@@ -301,6 +300,10 @@ def ensure_managed_service_account_rbac(hub_client, managed_service_account, man
 
 
 def execute_module(module: AnsibleModule):
+    if 'k8s' in IMP_ERR:
+        # we will need k8s for this module
+        module.fail_json(msg=missing_required_lib('kubernetes'), exception=IMP_ERR['k8s']['exception'])
+
     managed_cluster_name = module.params['managed_cluster']
 
     hub_kubeconfig = kubernetes.config.load_kube_config(
@@ -326,23 +329,23 @@ def execute_module(module: AnsibleModule):
         timeout = 60
     if wait:
         wait_for_addon_available(
-            hub_client, managed_service_account_addon, timeout)
+            module, hub_client, managed_service_account_addon, timeout)
 
     if not check_addon_available(hub_client, "managed-serviceaccount", managed_cluster_name):
         module.fail_json(
             err=f'failed to check addon: addon managed-serviceaccount of {managed_cluster_name} is not available')
 
     managed_service_account = ensure_managed_service_account(
-        hub_client, managed_service_account_addon)
+        module, hub_client, managed_service_account_addon)
     ensure_managed_service_account_rbac(
-        hub_client, managed_service_account, managed_service_account_addon)
+        module, hub_client, managed_service_account, managed_service_account_addon)
 
     # wait service account secret
     if wait:
         wait_for_serviceaccount_secret(
-            hub_client, managed_service_account, timeout)
+            module, hub_client, managed_service_account, timeout)
     managed_service_account = ensure_managed_service_account(
-        hub_client, managed_service_account_addon)
+        module, hub_client, managed_service_account_addon)
 
     # grab secret
     secret = get_hub_serviceaccount_secret(hub_client, managed_service_account)

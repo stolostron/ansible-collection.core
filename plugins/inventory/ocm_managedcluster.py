@@ -90,7 +90,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
         valid = False
         if super().verify_file(path):
             # base class verifies that file exists and is readable by current user
-            if path.endswith(('ocm.yaml', 'ocm.yml', 'ocmplus.yaml', 'ocmplus.yml')):
+            if path.endswith(('.yaml', '.yml')):
                 valid = True
         return valid
 
@@ -123,16 +123,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
         if IMP_ERR:
             raise OCMInventoryException(IMP_ERR)
         self.fetch_objects(cluster_groups, hub_connection)
-        # TODO: make cache to work
-        # source_data = None
-        # if cache and cache_key in self._cache:
-        #     try:
-        #         source_data = self._cache[cache_key]
-        #     except KeyError:
-        #         pass
-
-        # if not source_data:
-        #     self.fetch_objects(cluster_groups,hub_connection)
 
     def fetch_objects(self, cluster_groups, hub_connection):
         known_groups = []
