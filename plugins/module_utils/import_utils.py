@@ -29,10 +29,10 @@ apiVersion: cluster.open-cluster-management.io/v1
 kind: ManagedCluster
 metadata:
   name: {{ managedcluster_name }}
-labels:
-  name: {{ managedcluster_name }}
-  vendor: auto-detect
-  cloud: auto-detect
+  labels:
+    name: {{ managedcluster_name }}
+    vendor: auto-detect
+    cloud: auto-detect
 spec:
   hubAcceptsClient: true
   leaseDurationSeconds: 60
