@@ -1,6 +1,1 @@
-plugins/modules/import_eks.py import-3.6 # amazon.aws collection is required
-plugins/modules/import_eks.py import-3.7 # amazon.aws collection is required
-plugins/modules/import_eks.py import-3.8 # amazon.aws collection is required
-plugins/modules/import_eks.py import-3.9 # amazon.aws collection is required
-plugins/modules/import_eks.py import-3.10 # amazon.aws collection is required
-plugins/modules/import_eks.py validate-modules!skip # amazon.aws collection is required
+
