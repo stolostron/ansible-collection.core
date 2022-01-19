@@ -1,13 +1,7 @@
 plugins/modules/import_eks.py import-2.6 # Python 2.x is not supported
 plugins/modules/import_eks.py import-2.7 # Python 2.x is not supported
-plugins/modules/import_eks.py import-3.5 # amazon.aws collection is required
-plugins/modules/import_eks.py import-3.6 # amazon.aws collection is required
-plugins/modules/import_eks.py import-3.7 # amazon.aws collection is required
-plugins/modules/import_eks.py import-3.8 # amazon.aws collection is required
-plugins/modules/import_eks.py import-3.9 # amazon.aws collection is required
 plugins/modules/import_eks.py compile-2.6!skip # Python 2.x is not supported
 plugins/modules/import_eks.py compile-2.7!skip # Python 2.x is not supported
-plugins/modules/import_eks.py validate-modules!skip # amazon.aws collection is required
 plugins/module_utils/import_utils.py import-2.6 # Python 2.x is not supported
 plugins/module_utils/import_utils.py import-2.7 # Python 2.x is not supported
 plugins/module_utils/import_utils.py import-3.5 # Python 3.5 is not supported
