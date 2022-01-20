@@ -35,7 +35,7 @@ Dependencies
 
 The python modules *boto*, *boto3*, *botocore*, and *awscli* (listed in `requirements.txt`) provide the connectivity to EKS clusters.
 
-Additional python modules *ansible*, *kuberentes*, *backoff*, *polling*, and *pyyaml* are required and listed in `requirements.txt`.
+Additional python modules *ansible*, *kuberentes*, and *pyyaml* are required and listed in `requirements.txt`.
 
 To run sanity tests, python modules *voluptuous*, *yamllint*, *pycodestyle*, and *pylint* are required and listed in `test-requirements.txt`.
 
