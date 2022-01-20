@@ -1,15 +1,6 @@
 #!/usr/bin/python
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 from __future__ import (absolute_import, division, print_function)
-from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
-    check_addon_available,
-    get_managed_cluster_addon,
-    wait_for_addon_available
-)
-from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
-import traceback
-import base64
 __metaclass__ = type
 
 
@@ -72,6 +63,16 @@ err:
   sample: null
 '''
 
+import base64
+import traceback
+
+from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
+from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
+from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
+    check_addon_available,
+    get_managed_cluster_addon,
+    wait_for_addon_available
+)
 
 IMP_ERR = {}
 try:
