@@ -23,10 +23,6 @@ try:
 except ImportError as e:
     IMP_ERR['jinja2'] = {'error': traceback.format_exc(),
                          'exception': e}
-try:
-    import polling
-except ImportError as e:
-    IMP_ERR['polling'] = {'error': traceback.format_exc(), 'exception': e}
 
 ADDON_TEMPLATE = """
 apiVersion: addon.open-cluster-management.io/v1alpha1
@@ -54,9 +50,11 @@ def get_managed_cluster_addon(hub_client, addon_name: str, cluster_name: str):
 def check_managed_cluster_addon_available(managed_cluster_addon) -> bool:
     if managed_cluster_addon is None:
         return False
-    for condition in managed_cluster_addon.status.conditions:
-        if condition.type == 'Available':
-            return condition.status == 'True'
+    if "status" in managed_cluster_addon.keys():
+        conditions = managed_cluster_addon.status.get("conditions", [])
+        for condition in conditions:
+            if condition.type == 'Available':
+                return condition.status == 'True'
     return False
 
 
@@ -65,22 +63,21 @@ def check_addon_available(hub_client, addon_name: str, cluster_name: str):
     return check_managed_cluster_addon_available(addon)
 
 
-def wait_for_addon_available(module: AnsibleModule, hub_client, addon, timeout=60):
-    if 'polling' in IMP_ERR:
-        # if polling not available, will simply do no waiting
-        module.fail_json(msg=missing_required_lib('polling'), exception=IMP_ERR['polling']['exception'])
-    ret = polling.poll(
-        target=lambda: get_managed_cluster_addon(
-            hub_client,
-            addon_name=addon.metadata.name,
-            cluster_name=addon.metadata.namespace,
-        ),
-        check_success=check_managed_cluster_addon_available,
-        step=0.1,
-        timeout=timeout,
+def wait_for_addon_available(module: AnsibleModule, hub_client, addon, timeout=60) -> bool:
+    managed_cluster_addon_api = hub_client.resources.get(
+        api_version="addon.open-cluster-management.io/v1alpha1",
+        kind="ManagedClusterAddOn",
     )
 
-    return ret
+    for event in managed_cluster_addon_api.watch(namespace=addon.metadata.namespace, timeout=timeout):
+        if event["type"] in ["ADDED", "MODIFIED"] and event["object"].metadata.name == addon.metadata.name:
+            if "status" in event["object"].keys():
+                conditions = event["object"]["status"].get("conditions", [])
+                for condition in conditions:
+                    if condition["type"] == "Available" and condition["status"] == "True":
+                        return True
+
+    return False
 
 
 def ensure_managed_cluster_addon_enabled(
@@ -91,7 +88,8 @@ def ensure_managed_cluster_addon_enabled(
     addon_install_namespace: str = "open-cluster-management-agent-addon"
 ):
     if 'k8s' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('kubernetes'), exception=IMP_ERR['k8s']['exception'])
+        module.fail_json(msg=missing_required_lib('kubernetes'),
+                         exception=IMP_ERR['k8s']['exception'])
 
     managed_cluster_addon_api = hub_client.resources.get(
         api_version="addon.open-cluster-management.io/v1alpha1",
@@ -105,9 +103,11 @@ def ensure_managed_cluster_addon_enabled(
         )
     except NotFoundError:
         if 'jinja2' in IMP_ERR:
-            module.fail_json(msg=missing_required_lib('jinja2'), exception=IMP_ERR['jinja2']['exception'])
+            module.fail_json(msg=missing_required_lib(
+                'jinja2'), exception=IMP_ERR['jinja2']['exception'])
         if 'yaml' in IMP_ERR:
-            module.fail_json(msg=missing_required_lib('yaml'), exception=IMP_ERR['yaml']['exception'])
+            module.fail_json(msg=missing_required_lib('yaml'),
+                             exception=IMP_ERR['yaml']['exception'])
         new_addon_yaml = Template(ADDON_TEMPLATE).render(
             addon_name=addon_name,
             managed_cluster_name=managed_cluster_name,
@@ -117,6 +117,7 @@ def ensure_managed_cluster_addon_enabled(
         try:
             addon = managed_cluster_addon_api.create(new_addon)
         except DynamicApiError as e:
-            module.fail_json(msg=f'failed to create managedclusteraddon {addon_name}', exception=e)
+            module.fail_json(
+                msg=f'failed to create managedclusteraddon {addon_name}', exception=e)
 
     return addon
