@@ -86,11 +86,6 @@ except ImportError as e:
     IMP_ERR['jinja2'] = {'error': traceback.format_exc(),
                          'exception': e}
 try:
-    import polling
-except ImportError as e:
-    IMP_ERR['polling'] = {'error': traceback.format_exc(), 'exception': e}
-
-try:
     import kubernetes
     from kubernetes.dynamic.exceptions import NotFoundError
 except ImportError as e:
@@ -205,40 +200,29 @@ def get_hub_serviceaccount_secret(hub_client, managed_service_account):
 
 
 def wait_for_serviceaccount_secret(module: AnsibleModule, hub_client, managed_service_account, timeout=60):
-    if 'polling' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('polling'), exception=IMP_ERR['polling']['exception'])
-
     managed_service_account_api = hub_client.resources.get(
         api_version="authentication.open-cluster-management.io/v1alpha1",
         kind="ManagedServiceAccount",
     )
 
-    def check_success(response) -> bool:
-        if response is None:
-            return False
-        for condition in response['status']['conditions']:
-            if condition['type'] == 'SecretCreated':
-                return condition['status'] == 'True'
-        return False
+    for event in managed_service_account_api.watch(namespace=managed_service_account.metadata.namespace, timeout=timeout):
+        if event["type"] in ["ADDED", "MODIFIED"] and event["object"].metadata.name == managed_service_account.metadata.name:
+            if "status" in event["object"].keys():
+                conditions = event["object"]["status"].get("conditions", [])
+                for condition in conditions:
+                    if condition["type"] == "SecretCreated" and condition["status"] == "True":
+                        return True
 
-    is_available = polling.poll(
-        target=lambda: managed_service_account_api.get(
-            name=managed_service_account.metadata.name,
-            namespace=managed_service_account.metadata.namespace
-        ),
-        check_success=check_success,
-        step=0.1,
-        timeout=timeout,
-    )
-
-    return is_available
+    return False
 
 
 def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_service_account_addon):
     if 'jinja2' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('jinja2'), exception=IMP_ERR['jinja2']['exception'])
+        module.fail_json(msg=missing_required_lib('jinja2'),
+                         exception=IMP_ERR['jinja2']['exception'])
     if 'yaml' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('yaml'), exception=IMP_ERR['yaml']['exception'])
+        module.fail_json(msg=missing_required_lib('yaml'),
+                         exception=IMP_ERR['yaml']['exception'])
     managed_cluster_name = managed_service_account_addon.metadata.namespace
     managed_cluster_namespace = managed_service_account_addon.metadata.namespace
 
@@ -266,9 +250,11 @@ def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_se
 
 def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, managed_service_account, managed_service_account_addon):
     if 'jinja2' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('jinja2'), exception=IMP_ERR['jinja2']['exception'])
+        module.fail_json(msg=missing_required_lib('jinja2'),
+                         exception=IMP_ERR['jinja2']['exception'])
     if 'yaml' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('yaml'), exception=IMP_ERR['yaml']['exception'])
+        module.fail_json(msg=missing_required_lib('yaml'),
+                         exception=IMP_ERR['yaml']['exception'])
     managed_cluster_name = managed_service_account_addon.metadata.namespace
     managed_service_account_name = managed_service_account.metadata.name
     managed_service_account_namespace = managed_service_account_addon.spec.installNamespace
@@ -302,7 +288,8 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
 def execute_module(module: AnsibleModule):
     if 'k8s' in IMP_ERR:
         # we will need k8s for this module
-        module.fail_json(msg=missing_required_lib('kubernetes'), exception=IMP_ERR['k8s']['exception'])
+        module.fail_json(msg=missing_required_lib('kubernetes'),
+                         exception=IMP_ERR['k8s']['exception'])
 
     managed_cluster_name = module.params['managed_cluster']
 
@@ -361,7 +348,8 @@ def execute_module(module: AnsibleModule):
 
 def main():
     argument_spec = dict(
-        hub_kubeconfig=dict(type='str', required=True, fallback=(env_fallback, ['K8S_AUTH_KUBECONFIG'])),
+        hub_kubeconfig=dict(type='str', required=True, fallback=(
+            env_fallback, ['K8S_AUTH_KUBECONFIG'])),
         managed_cluster=dict(type='str', required=True),
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60),
