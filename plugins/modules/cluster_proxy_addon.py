@@ -60,8 +60,6 @@ err:
 '''
 
 import traceback
-import requests
-import urllib3
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
@@ -77,6 +75,18 @@ try:
 except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
+
+try:
+    import requests
+except ImportError as e:
+    IMP_ERR['requests'] = {'error': traceback.format_exc(),
+                           'exception': e}
+
+try:
+    import urllib3
+except ImportError as e:
+    IMP_ERR['urllib3'] = {'error': traceback.format_exc(),
+                          'exception': e}
 
 
 def ensure_cluster_proxy_feature_enabled(hub_client) -> dict:
