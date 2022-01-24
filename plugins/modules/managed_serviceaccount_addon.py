@@ -71,7 +71,8 @@ from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get
 from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
     check_addon_available,
     get_managed_cluster_addon,
-    wait_for_addon_available
+    wait_for_addon_available,
+    ensure_managed_cluster_addon_enabled
 )
 
 IMP_ERR = {}
@@ -307,6 +308,9 @@ def execute_module(module: AnsibleModule):
         # TODO: there might be other exit condition
 
     ensure_managed_service_account_feature_enabled(hub_client)
+
+    ensure_managed_cluster_addon_enabled(
+        module, hub_client, "managed-serviceaccount", managed_cluster_name)
 
     managed_service_account_addon = get_managed_cluster_addon(
         hub_client, "managed-serviceaccount", managed_cluster_name)
