@@ -76,6 +76,18 @@ except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
 
+try:
+    import requests
+except ImportError as e:
+    IMP_ERR['requests'] = {'error': traceback.format_exc(),
+                           'exception': e}
+
+try:
+    import urllib3
+except ImportError as e:
+    IMP_ERR['urllib3'] = {'error': traceback.format_exc(),
+                          'exception': e}
+
 
 def ensure_cluster_proxy_feature_enabled(hub_client) -> dict:
     # get all instance of mch
@@ -113,6 +125,22 @@ def get_hub_proxy_route(hub_client, ocm_namespace: str):
     except NotFoundError:
         return None
     return route.spec.host
+
+
+def wait_for_proxy_route_available(url, timeout=60):
+    max_retry = 5
+    retries = urllib3.util.retry.Retry(total=max_retry,
+                                       backoff_factor=timeout /
+                                       max_retry / (max_retry + 1),
+                                       status_forcelist=[500, 502, 503, 504])
+    session = requests.Session()
+    session.mount(
+        'https://', requests.adapters.HTTPAdapter(max_retries=retries))
+    try:
+        session.get(url, verify=False)
+        return True
+    except requests.exceptions.RetryError as e:
+        return False
 
 
 def get_ocm_install_namespace(hub_client):
@@ -170,6 +198,12 @@ def execute_module(module: AnsibleModule):
                          err="failed to get hub proxy url")
 
     cluster_url = f"https://{hub_proxy_url}/{managed_cluster_name}"
+    health_url = f"{cluster_url}/healthz"
+    if wait:
+        if not wait_for_proxy_route_available(health_url, timeout):
+            module.fail_json(f"timed out waiting for proxy url {health_url} to become available",
+                             err=f"timed out waiting for proxy url {health_url} to become available")
+
     module.exit_json(cluster_url=cluster_url)
 
 

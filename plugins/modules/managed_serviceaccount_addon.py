@@ -303,7 +303,7 @@ def execute_module(module: AnsibleModule):
     if managed_cluster is None:
         # TODO: throw error and exit
         module.fail_json(
-            err=f'failed to get managedcluster {managed_cluster_name}')
+            msg=f'failed to get managedcluster {managed_cluster_name}')
         # TODO: there might be other exit condition
 
     ensure_managed_service_account_feature_enabled(hub_client)
@@ -320,7 +320,7 @@ def execute_module(module: AnsibleModule):
 
     if not check_addon_available(hub_client, "managed-serviceaccount", managed_cluster_name):
         module.fail_json(
-            err=f'failed to check addon: addon managed-serviceaccount of {managed_cluster_name} is not available')
+            msg=f'failed to check addon: addon managed-serviceaccount of {managed_cluster_name} is not available')
 
     managed_service_account = ensure_managed_service_account(
         module, hub_client, managed_service_account_addon)
@@ -338,7 +338,7 @@ def execute_module(module: AnsibleModule):
     secret = get_hub_serviceaccount_secret(hub_client, managed_service_account)
     if secret is None:
         module.fail_json(
-            err=f'failed to get secret: secret of managedserviceaccount {managed_service_account.metadata.name} of cluster {managed_cluster_name} is not found')
+            msg=f'failed to get secret: secret of managedserviceaccount {managed_service_account.metadata.name} of cluster {managed_cluster_name} is not found')
 
     # get token
     token_bytes = base64.b64decode(secret.data.token)
