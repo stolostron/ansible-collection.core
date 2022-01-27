@@ -11,10 +11,10 @@ module: import_eks
 short_description: Import an AWS EKS cluster into an ACM Hub cluster
 
 author:
-    - "Crystal Chun (@CrystalChun) <cchun@redhat.com>"
-    - "Hao Liu (@TheRealHaoLiu) <haoli@redhat.com>"
-    - "Hanqiu Zhang (@hanqiuzh) <hanzhang@redhat.com>"
-    - "Tara Gu (@taragu) <tgu@redhat.com>"
+    - "Hao Liu (@TheRealHaoLiu)"
+    - "Hanqiu Zhang (@hanqiuzh)"
+    - "Nathan Weatherly (@nathanweatherly)"
+    - "Tsu Phin Hee (@tphee)"
 
 description: Import an AWS EKS cluster into an ACM Hub cluster
 
