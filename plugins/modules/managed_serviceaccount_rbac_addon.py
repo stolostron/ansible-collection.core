@@ -102,7 +102,7 @@ try:
     import os
 except ImportError as e:
     IMP_ERR['os'] = {'error': traceback.format_exc(),
-                       'exception': e}
+                     'exception': e}
 
 
 MANIFEST_WORK_TEMPLATE = """
@@ -158,7 +158,7 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
                     'namespace': managed_service_account_namespace}
     role_names = []
     filenames = []
-    
+
     if not os.path.exists(rbac_template):
         module.fail_json(
             msg=f'error: RBAC template file or directory {rbac_template} does not exists!')
@@ -192,7 +192,8 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
                             doc['subjects'] = []
                             doc['subjects'].append(role_subject)
 
-                    new_manifest_work['spec']['workload']['manifests'].append(doc)
+                    new_manifest_work['spec']['workload']['manifests'].append(
+                        doc)
     except Exception:
         module.fail_json(
             msg=f'error: invalid RBAC template file {filename}')
