@@ -74,7 +74,7 @@ err:
   sample: null
 '''
 
-import base64
+import os
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
@@ -98,11 +98,6 @@ try:
 except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
-try:
-    import os
-except ImportError as e:
-    IMP_ERR['os'] = {'error': traceback.format_exc(),
-                     'exception': e}
 
 
 MANIFEST_WORK_TEMPLATE = """
@@ -131,9 +126,6 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
     if 'yaml' in IMP_ERR:
         module.fail_json(msg=missing_required_lib('yaml'),
                          exception=IMP_ERR['yaml']['exception'])
-    if 'os' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('os'),
-                         exception=IMP_ERR['os']['exception'])
 
     managed_service_account_name = managed_serviceaccount[
         'managed_serviceaccount']['service_account']['name']
@@ -164,15 +156,16 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
 
     if not os.path.exists(rbac_template):
         module.fail_json(
-            msg=f'error: RBAC template file or directory {rbac_template} does not exists!')
+            msg=f"error: RBAC template file or directory {rbac_template} does not exists!")
         return None
-    elif os.path.isdir(rbac_template):
+
+    if os.path.isdir(rbac_template):
         names = next(os.walk(rbac_template), (None, None, []))[2]
         for name in names:
-            filenames.append(f'{rbac_template}/{name}')
+            filenames.append(f"{rbac_template}/{name}")
         if len(filenames) == 0:
             module.fail_json(
-                msg=f'error: RBAC template directory {rbac_template} is empty!')
+                msg=f"error: RBAC template directory {rbac_template} is empty!")
             return None
     else:
         filenames.append(rbac_template)
@@ -199,7 +192,7 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
                         doc)
     except Exception:
         module.fail_json(
-            msg=f'error: invalid RBAC template file {filename}')
+            msg=f"error: invalid RBAC template file {filename}")
 
     manifest_work_api = hub_client.resources.get(
         api_version='work.open-cluster-management.io/v1',
@@ -251,7 +244,7 @@ def execute_module(module: AnsibleModule):
     managed_cluster = get_managed_cluster(hub_client, managed_cluster_name)
     if managed_cluster is None:
         module.fail_json(
-            msg=f'failed to get managedcluster {managed_cluster_name}')
+            msg=f"failed to get managedcluster {managed_cluster_name}")
 
     manifest_work = ensure_managed_service_account_rbac(
         module, hub_client, managed_cluster_name, managed_serviceaccount, rbac_template)
