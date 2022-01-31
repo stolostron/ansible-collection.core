@@ -24,6 +24,18 @@ except ImportError as e:
     IMP_ERR['jinja2'] = {'error': traceback.format_exc(),
                          'exception': e}
 
+try:
+    import random
+except ImportError as e:
+    IMP_ERR['yaml'] = {'error': traceback.format_exc(),
+                       'exception': e}
+
+try:
+    import string
+except ImportError as e:
+    IMP_ERR['yaml'] = {'error': traceback.format_exc(),
+                       'exception': e}
+
 ADDON_TEMPLATE = """
 apiVersion: addon.open-cluster-management.io/v1alpha1
 kind: ManagedClusterAddOn
@@ -121,3 +133,7 @@ def ensure_managed_cluster_addon_enabled(
                 msg=f'failed to create managedclusteraddon {addon_name}', exception=e)
 
     return addon
+
+
+def generate_random_string(size: int = 16):
+    return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(size))
