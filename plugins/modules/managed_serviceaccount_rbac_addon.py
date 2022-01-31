@@ -34,7 +34,7 @@ options:
         type: dict
         required: True
     rbac_template:
-        description: Path to the RBAC template file.
+        description: Path to the RBAC role/clusterrrole/rolebinding/clusterrolebinding file or directory.
         type: str
         required: True
     wait:
@@ -55,7 +55,7 @@ EXAMPLES = r'''
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
     managed_serviceaccount: managed_serviceaccount
-    rbac_template: /path/to/template.yaml
+    rbac_template: /path/to/rbac_template
     wait: True
     timeout: 60
   register: token
@@ -98,6 +98,11 @@ try:
 except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
+try:
+    import os
+except ImportError as e:
+    IMP_ERR['os'] = {'error': traceback.format_exc(),
+                       'exception': e}
 
 
 MANIFEST_WORK_TEMPLATE = """
@@ -152,30 +157,45 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
                     'name': managed_service_account_name,
                     'namespace': managed_service_account_namespace}
     role_names = []
-    try:
-        with open(rbac_template, 'r') as file:
-            docs = yaml.safe_load_all(file)
-            for doc in docs:
-                if doc['kind'] in ['Role', 'ClusterRole']:
-                    role_names.append(doc['metadata']['name'])
-                    doc['metadata']['name'] = f"{doc['metadata']['name']}-{random_string}"
-                elif doc['kind'] in ['RoleBinding', 'ClusterRoleBinding']:
-                    doc['metadata']['name'] = f"{doc['metadata']['name']}-{random_string}"
-                    if doc['roleRef']['name'] in role_names:
-                        doc['roleRef']['name'] = f"{doc['roleRef']['name']}-{random_string}"
-                    if 'subjects' in doc.keys():
-                        doc['subjects'].append(role_subject)
-                    else:
-                        doc['subjects'] = []
-                        doc['subjects'].append(role_subject)
-
-                new_manifest_work['spec']['workload']['manifests'].append(doc)
-    except FileNotFoundError:
+    filenames = []
+    
+    if not os.path.exists(rbac_template):
         module.fail_json(
-            msg=f'error: RBAC template file {rbac_template} does not exists!')
+            msg=f'error: RBAC template file or directory {rbac_template} does not exists!')
+        return None
+    elif os.path.isdir(rbac_template):
+        names = next(os.walk(rbac_template), (None, None, []))[2]
+        for name in names:
+            filenames.append(f'{rbac_template}/{name}')
+        if len(filenames) == 0:
+            module.fail_json(
+                msg=f'error: RBAC template directory {rbac_template} is empty!')
+            return None
+    else:
+        filenames.append(rbac_template)
+
+    try:
+        for filename in filenames:
+            with open(filename, 'r') as file:
+                docs = yaml.safe_load_all(file)
+                for doc in docs:
+                    if doc['kind'] in ['Role', 'ClusterRole']:
+                        role_names.append(doc['metadata']['name'])
+                        doc['metadata']['name'] = f"{doc['metadata']['name']}-{random_string}"
+                    elif doc['kind'] in ['RoleBinding', 'ClusterRoleBinding']:
+                        doc['metadata']['name'] = f"{doc['metadata']['name']}-{random_string}"
+                        if doc['roleRef']['name'] in role_names:
+                            doc['roleRef']['name'] = f"{doc['roleRef']['name']}-{random_string}"
+                        if 'subjects' in doc.keys():
+                            doc['subjects'].append(role_subject)
+                        else:
+                            doc['subjects'] = []
+                            doc['subjects'].append(role_subject)
+
+                    new_manifest_work['spec']['workload']['manifests'].append(doc)
     except Exception:
         module.fail_json(
-            msg=f'error: invalid RBAC template file {rbac_template}')
+            msg=f'error: invalid RBAC template file {filename}')
 
     manifest_work_api = hub_client.resources.get(
         api_version='work.open-cluster-management.io/v1',

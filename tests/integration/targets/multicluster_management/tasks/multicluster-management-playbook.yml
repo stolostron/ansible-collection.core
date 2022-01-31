@@ -27,7 +27,7 @@
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
       managed_serviceaccount: "{{ managed_serviceaccount }}"
-      rbac_template: role-rolebinding.yaml
+      rbac_template: rbac
       wait: True
       timeout: 60
     register: token
