@@ -55,46 +55,38 @@ RETURN = r'''
 managed_serviceaccount:
     description: Managed ServiceAccount information
     returned: when cluster proxy is enabled and available
-    return: success
     type: dict
     contains:
       name:
         description: The name of the managed ServiceAccount resource
         type: str
-        return: success
       namespace:
         description: The namespace of the managed ServiceAccount resource
         type: str
-        return: success
       api_version:
         description: The api_version of the managed ServiceAccount resource
         type: str
-        return: success
       kind:
         description: The kind of the managed ServiceAccount resource
         type: str
-        return: success
       uid:
         description: The uuid of the managed ServiceAccount resource
         type: str
-        return: success
       service_account:
         description: ServiceAccount information
-        return: success
         type: dict
         contains:
           name:
             description: The name of the ServiceAccount on managed cluster
             type: str
-            return: success
           namespace:
             description: The namespace of the ServiceAccount on managed cluster
             type: str
-            return: success
           token:
             description: The token of the ServiceAccount
             type: str
-            return: success      
+    sample: {"name": "na...", "namespace": "na...", "api_version": "authentication.open-cluster-management.io/v1alpha1", "kind": "ManagedServiceAccount", 
+             "uid": "ui...", "service_account": {"name": "na...", "namespace": "na...", "token": "ey..."}}
 err:
   description: Error message
   returned: when there's an error

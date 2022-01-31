@@ -65,8 +65,8 @@ RETURN = r'''
 token:
     description: The token of the ServiceAccount
     returned: when cluster proxy is enabled and available
-    return: success
     type: str
+    sample: "ey..."
 err:
   description: Error message
   returned: when there's an error
