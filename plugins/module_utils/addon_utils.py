@@ -136,4 +136,4 @@ def ensure_managed_cluster_addon_enabled(
 
 
 def generate_random_string(size: int = 16):
-    return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(size))
+    return ''.join(random.choice(string.ascii_lowercase + string.digits) for s in range(size))
