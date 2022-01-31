@@ -131,6 +131,10 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
     if 'yaml' in IMP_ERR:
         module.fail_json(msg=missing_required_lib('yaml'),
                          exception=IMP_ERR['yaml']['exception'])
+    if 'os' in IMP_ERR:
+        module.fail_json(msg=missing_required_lib('os'),
+                         exception=IMP_ERR['os']['exception'])                         
+
 
     managed_service_account_name = managed_serviceaccount[
         'managed_serviceaccount']['service_account']['name']
