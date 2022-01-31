@@ -85,7 +85,7 @@ managed_serviceaccount:
           token:
             description: The token of the ServiceAccount
             type: str
-    sample: {"name": "na...", "namespace": "na...", "api_version": "authentication.open-cluster-management.io/v1alpha1", "kind": "ManagedServiceAccount", 
+    sample: {"name": "na...", "namespace": "na...", "api_version": "authentication.open-cluster-management.io/v1alpha1", "kind": "ManagedServiceAccount",
              "uid": "ui...", "service_account": {"name": "na...", "namespace": "na...", "token": "ey..."}}
 err:
   description: Error message
@@ -275,8 +275,9 @@ def execute_module(module: AnsibleModule):
     token_bytes = base64.b64decode(secret.data.token)
     token = token_bytes.decode('ascii')
     managed_serviceaccount = {'name': managed_service_account.metadata.name, 'namespace': managed_service_account.metadata.namespace,
-                              'api_version': managed_service_account.apiVersion, 'kind': managed_service_account.kind, 'uid': managed_service_account.metadata.uid,
-                              'service_account': {'name': managed_service_account.metadata.name, 'namespace': managed_service_account_addon.spec.installNamespace, 'token': token}}
+                              'api_version': managed_service_account.apiVersion, 'kind': managed_service_account.kind,
+                              'uid': managed_service_account.metadata.uid, 'service_account': {'name': managed_service_account.metadata.name,
+                              'namespace': managed_service_account_addon.spec.installNamespace, 'token': token}}
     module.exit_json(managed_serviceaccount=managed_serviceaccount)
 
 
