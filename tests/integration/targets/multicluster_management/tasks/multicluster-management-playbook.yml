@@ -1,4 +1,3 @@
-
 - name: "Creating configmap {{ configmap_name }} on {{ target_hosts }} host group"
   hosts: "{{ target_hosts }}"
   connection: local
@@ -60,4 +59,3 @@
           namespace: "{{ managed_serviceaccount.managed_serviceaccount.namespace }}"
       wait: true
       wait_timeout: 60
-
