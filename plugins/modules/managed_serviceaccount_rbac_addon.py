@@ -148,7 +148,7 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
 
     if managed_service_account_addon is None:
         module.fail_json(
-            msg=f"failed to get managed serviceaccount addon managed-serviceaccount")
+            msg="failed to get managed serviceaccount addon managed-serviceaccount")
 
     random_string = generate_random_string()
 
