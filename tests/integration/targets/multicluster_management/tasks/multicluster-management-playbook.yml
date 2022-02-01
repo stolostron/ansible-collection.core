@@ -30,16 +30,16 @@
       rbac_template: rbac
       wait: True
       timeout: 60
-    register: token
+    register: result
   - name: debug
     debug:
-      msg: "token length: {{ token.token | length }}"
+      msg: "{{ result.result }}"
   - name: "Creating configmap {{ configmap_name }} on {{ hostvars[inventory_hostname].cluster_name }}"
     kubernetes.core.k8s:
       state: present
       host: "{{ cluster_proxy_url.cluster_url }}"
       validate_certs: no
-      api_key: "{{token.token}}"
+      api_key: "{{ managed_serviceaccount.managed_serviceaccount.token }}"
       definition:
         apiVersion: v1
         kind: ConfigMap
@@ -52,8 +52,8 @@
       kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       state: absent
       definition:
-        apiVersion: "{{ managed_serviceaccount.managed_serviceaccount.api_version }}"
-        kind: "{{ managed_serviceaccount.managed_serviceaccount.kind }}"
+        apiVersion: authentication.open-cluster-management.io/v1alpha1
+        kind: ManagedServiceAccount
         metadata:
           name: "{{ managed_serviceaccount.managed_serviceaccount.name }}"
           namespace: "{{ managed_serviceaccount.managed_serviceaccount.namespace }}"

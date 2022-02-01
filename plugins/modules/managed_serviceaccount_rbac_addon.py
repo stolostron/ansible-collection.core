@@ -58,15 +58,14 @@ EXAMPLES = r'''
     rbac_template: /path/to/rbac_template
     wait: True
     timeout: 60
-  register: token
 '''
 
 RETURN = r'''
-token:
-    description: The token of the ServiceAccount
-    returned: when cluster proxy is enabled and available
+result:
+    description:
+    - message describing the RBAC configuration successfully done.
+    returned: success
     type: str
-    sample: "ey..."
 err:
   description: Error message
   returned: when there's an error
@@ -79,7 +78,10 @@ import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import generate_random_string
+from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
+    get_managed_cluster_addon,
+    generate_random_string,
+)
 
 IMP_ERR = {}
 try:
@@ -104,7 +106,7 @@ MANIFEST_WORK_TEMPLATE = """
 apiVersion: work.open-cluster-management.io/v1
 kind: ManifestWork
 metadata:
-  name: {{ managed_service_account_name }}
+  name: {{ owner_name }}
   namespace: {{ cluster_name }}
   ownerReferences:
   - apiVersion: {{ owner_api_version }}
@@ -127,30 +129,42 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
         module.fail_json(msg=missing_required_lib('yaml'),
                          exception=IMP_ERR['yaml']['exception'])
 
-    managed_service_account_name = managed_serviceaccount[
-        'managed_serviceaccount']['service_account']['name']
-    managed_service_account_namespace = managed_serviceaccount[
-        'managed_serviceaccount']['service_account']['namespace']
+    managed_service_account_api = hub_client.resources.get(
+        api_version='authentication.open-cluster-management.io/v1alpha1',
+        kind='ManagedServiceAccount',
+    )
+
+    managed_service_account = managed_service_account_api.get(
+        name=managed_serviceaccount['managed_serviceaccount']['name'],
+        namespace=managed_serviceaccount['managed_serviceaccount']['namespace'],
+    )
+
+    if managed_service_account is None:
+        module.fail_json(
+            msg=f"failed to get managed serviceaccount {managed_serviceaccount['managed_serviceaccount']['name']}")
+
+    managed_service_account_addon = get_managed_cluster_addon(
+        hub_client, 'managed-serviceaccount', managed_cluster_name)
+
+    if managed_service_account_addon is None:
+        module.fail_json(
+            msg=f"failed to get managed serviceaccount addon managed-serviceaccount")
+
     random_string = generate_random_string()
 
     new_manifest_work_raw = Template(MANIFEST_WORK_TEMPLATE).render(
         cluster_name=managed_cluster_name,
-        managed_service_account_name=managed_service_account_name,
-        owner_api_version=managed_serviceaccount[
-            'managed_serviceaccount']['api_version'],
-        owner_kind=managed_serviceaccount[
-            'managed_serviceaccount']['kind'],
-        owner_name=managed_serviceaccount[
-            'managed_serviceaccount']['name'],
-        owner_uid=managed_serviceaccount[
-            'managed_serviceaccount']['uid'],
+        owner_name=managed_service_account.metadata.name,
+        owner_api_version=managed_service_account.apiVersion,
+        owner_kind=managed_service_account.kind,
+        owner_uid=managed_service_account.metadata.uid,
     )
 
     new_manifest_work = yaml.safe_load(new_manifest_work_raw)
 
     role_subject = {'kind': 'ServiceAccount',
-                    'name': managed_service_account_name,
-                    'namespace': managed_service_account_namespace}
+                    'name': managed_service_account.metadata.name,
+                    'namespace': managed_service_account_addon.spec.installNamespace}
     role_names = []
     filenames = []
 
@@ -254,7 +268,7 @@ def execute_module(module: AnsibleModule):
             module, hub_client, manifest_work, timeout)
 
     module.exit_json(
-        token=managed_serviceaccount['managed_serviceaccount']['service_account']['token'])
+        result=f"RBAC configuration successfully done for managed cluster {managed_cluster_name}")
 
 
 def main():

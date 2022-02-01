@@ -53,9 +53,9 @@ EXAMPLES = r'''
 
 RETURN = r'''
 managed_serviceaccount:
-    description: Managed ServiceAccount information
-    returned: when cluster proxy is enabled and available
-    type: dict
+    description: A dictionary of Managed ServiceAccount information
+    returned: only when Managed ServiceAccount addon is enabled and available
+    type: complex
     contains:
       name:
         description: The name of the managed ServiceAccount resource
@@ -63,30 +63,10 @@ managed_serviceaccount:
       namespace:
         description: The namespace of the managed ServiceAccount resource
         type: str
-      api_version:
-        description: The api_version of the managed ServiceAccount resource
+      token:
+        description: The token of the ServiceAccount
         type: str
-      kind:
-        description: The kind of the managed ServiceAccount resource
-        type: str
-      uid:
-        description: The uuid of the managed ServiceAccount resource
-        type: str
-      service_account:
-        description: ServiceAccount information
-        type: dict
-        contains:
-          name:
-            description: The name of the ServiceAccount on managed cluster
-            type: str
-          namespace:
-            description: The namespace of the ServiceAccount on managed cluster
-            type: str
-          token:
-            description: The token of the ServiceAccount
-            type: str
-    sample: {"name": "na...", "namespace": "na...", "api_version": "authentication.open-cluster-management.io/v1alpha1", "kind": "ManagedServiceAccount",
-             "uid": "ui...", "service_account": {"name": "na...", "namespace": "na...", "token": "ey..."}}
+    sample: {"name": "na...", "namespace": "na...", "token": "ey..."}
 err:
   description: Error message
   returned: when there's an error
@@ -104,7 +84,6 @@ from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
     get_managed_cluster_addon,
     wait_for_addon_available,
     ensure_managed_cluster_addon_enabled,
-    generate_random_string,
 )
 
 IMP_ERR = {}
@@ -130,7 +109,7 @@ MANAGED_SERVICE_ACCOUNT_TEMPLATE = """
 apiVersion: authentication.open-cluster-management.io/v1alpha1
 kind: ManagedServiceAccount
 metadata:
-  name: cluster-proxy-{{ random_string }}
+  generateName: {{ cluster_name }}-managed-serviceaccount-
   namespace: {{ cluster_name }}
 spec:
   projected:
@@ -207,7 +186,6 @@ def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_se
 
     new_managed_service_account_raw = Template(MANAGED_SERVICE_ACCOUNT_TEMPLATE).render(
         cluster_name=managed_cluster_name,
-        random_string=generate_random_string(),
     )
     managed_service_account_yaml = yaml.safe_load(
         new_managed_service_account_raw)
@@ -275,10 +253,9 @@ def execute_module(module: AnsibleModule):
     token_bytes = base64.b64decode(secret.data.token)
     token = token_bytes.decode('ascii')
     managed_serviceaccount = {
-        'name': managed_service_account.metadata.name, 'namespace': managed_service_account.metadata.namespace,
-        'api_version': managed_service_account.apiVersion, 'kind': managed_service_account.kind,
-        'uid': managed_service_account.metadata.uid, 'service_account': {'name': managed_service_account.metadata.name,
-                                                                         'namespace': managed_service_account_addon.spec.installNamespace, 'token': token}
+        'name': managed_service_account.metadata.name,
+        'namespace': managed_service_account.metadata.namespace,
+        'token': token,
     }
     module.exit_json(managed_serviceaccount=managed_serviceaccount)
 
