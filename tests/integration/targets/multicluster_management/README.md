@@ -46,7 +46,7 @@ Additional python modules ansible, kuberentes, pyyaml, and requests are required
 - Enter your hub_kubeconfig in `tests/integration/targets/multicluster_management/tasksdynamic-inventory.yml`
 - Run the playbook
 ```
-ansible-playbook -i tests/integration/targets/multicluster_management/tasks/dynamic-inventory.yml tests/integration/targets/multicluster_management/tasks/multicluster-management-playbook.yml --extra-vars "target_hosts=ocp-clusters configmap_name=test configmap_namespace=default
+ansible-playbook -i tests/integration/targets/multicluster_management/tasks/dynamic-inventory.yml tests/integration/targets/multicluster_management/tasks/multicluster-management-playbook.yml --extra-vars "target_hosts=ocp-clusters configmap_name=test configmap_namespace=default"
 ```
 
 
