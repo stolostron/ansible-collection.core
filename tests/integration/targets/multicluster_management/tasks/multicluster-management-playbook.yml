@@ -1,0 +1,61 @@
+- name: "Creating configmap {{ configmap_name }} on {{ target_hosts }} host group"
+  hosts: "{{ target_hosts }}"
+  connection: local
+  tasks:
+  - name: "Get ClusterProxy URL for {{ hostvars[inventory_hostname].cluster_name }}"
+    ocmplus.cm.cluster_proxy_addon:
+      hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      wait: True
+      timeout: 60
+    register: cluster_proxy_url
+  - name: debug
+    debug:
+      msg: "{{ cluster_proxy_url.cluster_url }}"
+  - name: "Get managed ServiceAccount token for {{ hostvars[inventory_hostname].cluster_name }}"
+    ocmplus.cm.managed_serviceaccount_addon:
+      hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      wait: True
+      timeout: 60
+    register: managed_serviceaccount
+  - name: debug
+    debug:
+      msg: "managed_serviceaccount_name: {{ managed_serviceaccount.managed_serviceaccount.name }}"
+  - name: "Configure ServiceAccount RBAC for {{ hostvars[inventory_hostname].cluster_name }}"
+    ocmplus.cm.managed_serviceaccount_rbac_addon:
+      hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      managed_serviceaccount: "{{ managed_serviceaccount }}"
+      rbac_template: rbac
+      wait: True
+      timeout: 60
+    register: token
+  - name: debug
+    debug:
+      msg: "token length: {{ token.token | length }}"
+  - name: "Creating configmap {{ configmap_name }} on {{ hostvars[inventory_hostname].cluster_name }}"
+    kubernetes.core.k8s:
+      state: present
+      host: "{{ cluster_proxy_url.cluster_url }}"
+      validate_certs: no
+      api_key: "{{token.token}}"
+      definition:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: "{{ configmap_name }}"
+          namespace: "{{ configmap_namespace }}"
+    ignore_errors: true
+  - name: "Removing managed ServiceAccount {{ managed_serviceaccount.managed_serviceaccount.name }} for {{ hostvars[inventory_hostname].cluster_name }}"
+    kubernetes.core.k8s:
+      kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      state: absent
+      definition:
+        apiVersion: "{{ managed_serviceaccount.managed_serviceaccount.api_version }}"
+        kind: "{{ managed_serviceaccount.managed_serviceaccount.kind }}"
+        metadata:
+          name: "{{ managed_serviceaccount.managed_serviceaccount.name }}"
+          namespace: "{{ managed_serviceaccount.managed_serviceaccount.namespace }}"
+      wait: true
+      wait_timeout: 60

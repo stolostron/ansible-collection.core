@@ -27,6 +27,12 @@ plugins/modules/managed_serviceaccount_addon.py import-3.5 # Python 3.5 is not s
 plugins/modules/managed_serviceaccount_addon.py compile-2.6!skip # Python 2.x is not supported
 plugins/modules/managed_serviceaccount_addon.py compile-2.7!skip # Python 2.x is not supported
 plugins/modules/managed_serviceaccount_addon.py compile-3.5!skip # Python 3.5 is not supported
+plugins/modules/managed_serviceaccount_rbac_addon.py import-2.6 # Python 2.x is not supported
+plugins/modules/managed_serviceaccount_rbac_addon.py import-2.7 # Python 2.x is not supported
+plugins/modules/managed_serviceaccount_rbac_addon.py import-3.5 # Python 3.5 is not supported
+plugins/modules/managed_serviceaccount_rbac_addon.py compile-2.6!skip # Python 2.x is not supported
+plugins/modules/managed_serviceaccount_rbac_addon.py compile-2.7!skip # Python 2.x is not supported
+plugins/modules/managed_serviceaccount_rbac_addon.py compile-3.5!skip # Python 3.5 is not supported
 plugins/inventory/ocm_managedcluster.py compile-2.6!skip # Python 2.x is not supported
 plugins/inventory/ocm_managedcluster.py compile-2.7!skip # Python 2.x is not supported
 plugins/inventory/ocm_managedcluster.py compile-3.5!skip # Python 3.5 is not supported
