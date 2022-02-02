@@ -23,7 +23,7 @@
     debug:
       msg: "managed_serviceaccount_name: {{ managed_serviceaccount.managed_serviceaccount.name }}"
   - name: "Configure ServiceAccount RBAC for {{ hostvars[inventory_hostname].cluster_name }}"
-    ocmplus.cm.managed_serviceaccount_rbac_addon:
+    ocmplus.cm.managed_serviceaccount_rbac:
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
       managed_serviceaccount: "{{ managed_serviceaccount }}"

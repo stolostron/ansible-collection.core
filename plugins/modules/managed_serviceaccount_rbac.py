@@ -6,9 +6,9 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 
-module: managed_serviceaccount_rbac_addon
+module: managed_serviceaccount_rbac
 
-short_description: cluster proxy addon
+short_description: managed serviceaccount RBAC
 
 author:
 - "Hao Liu (@TheRealHaoLiu)"
@@ -17,8 +17,7 @@ author:
 - "Tsu Phin Hee (@tphee)"
 
 description:
-- Use the managed-serviceaccount RBAC addon to setup a serviceaccount on a managedcluster with the specified RBAC permission,
-    and return the serviceaccount token.
+- Use the managed-serviceaccount RBAC to setup a serviceaccount on a managedcluster with the specified RBAC permission.
 
 options:
     hub_kubeconfig:
@@ -43,7 +42,7 @@ options:
         default: False
         required: False
     timeout:
-        description: Number of seconds to wait for the addons to show up.
+        description: Number of seconds to wait for the resources to show up.
         type: int
         default: 60
         required: False
@@ -51,7 +50,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Configure RBAC"
-  ocmplus.cm.managed_serviceaccount_rbac_addon:
+  ocmplus.cm.managed_serviceaccount_rbac:
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
     managed_serviceaccount: managed_serviceaccount

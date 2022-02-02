@@ -8,7 +8,7 @@ DOCUMENTATION = r'''
 
 module: managed_serviceaccount_addon
 
-short_description: cluster proxy addon
+short_description: managed serviceaccount addon
 
 author:
 - "Hao Liu (@TheRealHaoLiu)"
