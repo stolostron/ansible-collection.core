@@ -2,6 +2,8 @@ from __future__ import (absolute_import, division, print_function)
 
 __metaclass__ = type
 
+import string
+import random
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, missing_required_lib
@@ -23,6 +25,7 @@ try:
 except ImportError as e:
     IMP_ERR['jinja2'] = {'error': traceback.format_exc(),
                          'exception': e}
+
 
 ADDON_TEMPLATE = """
 apiVersion: addon.open-cluster-management.io/v1alpha1
@@ -121,3 +124,7 @@ def ensure_managed_cluster_addon_enabled(
                 msg=f'failed to create managedclusteraddon {addon_name}', exception=e)
 
     return addon
+
+
+def generate_random_string(size: int = 16):
+    return ''.join(random.choice(string.ascii_lowercase + string.digits) for s in range(size))

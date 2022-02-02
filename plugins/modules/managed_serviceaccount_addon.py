@@ -8,15 +8,16 @@ DOCUMENTATION = r'''
 
 module: managed_serviceaccount_addon
 
-short_description: cluster proxy addon
+short_description: managed serviceaccount addon
 
 author:
 - "Hao Liu (@TheRealHaoLiu)"
 - "Hanqiu Zhang (@hanqiuzh)"
 - "Nathan Weatherly (@nathanweatherly)"
+- "Tsu Phin Hee (@tphee)"
 
 description:
-- Use the managed-serviceaccount addon to setup a serviceaccount on a managedcluster with default admin permission,
+- Use the managed-serviceaccount addon to setup a serviceaccount on a managedcluster,
     and return the serviceaccount token.
 
 options:
@@ -47,15 +48,25 @@ EXAMPLES = r'''
     managed_cluster: example-cluster
     wait: True
     timeout: 60
-  register: token
+  register: managed_serviceaccount
 '''
 
 RETURN = r'''
-token:
-    description: token of the specific serviceaccount
-    returned: when cluster proxy is enabled and available
-    type: str
-    sample: "ey..."
+managed_serviceaccount:
+    description: A dictionary of Managed ServiceAccount information
+    returned: only when Managed ServiceAccount addon is enabled and available
+    type: complex
+    contains:
+      name:
+        description: The name of the managed ServiceAccount resource
+        type: str
+      namespace:
+        description: The namespace of the managed ServiceAccount resource
+        type: str
+      token:
+        description: The token of the ServiceAccount
+        type: str
+    sample: {"name": "na...", "namespace": "na...", "token": "ey..."}
 err:
   description: Error message
   returned: when there's an error
@@ -72,7 +83,7 @@ from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
     check_addon_available,
     get_managed_cluster_addon,
     wait_for_addon_available,
-    ensure_managed_cluster_addon_enabled
+    ensure_managed_cluster_addon_enabled,
 )
 
 IMP_ERR = {}
@@ -93,75 +104,17 @@ except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
 
-SERVICE_ACCOUNT_MANIFEST_WORK_TEMPLATE = """
-apiVersion: work.open-cluster-management.io/v1
-kind: ManifestWork
-metadata:
-  name: {{ service_account_name }}.serviceaccount
-  namespace: {{ cluster_name }}
-spec:
-  workload:
-    manifests:
-    - apiVersion: v1
-      kind: ServiceAccount
-      metadata:
-        name: {{ service_account_name }}
-        namespace: {{ service_account_namespace }}
-    - apiVersion: v1
-      kind: Secret
-      metadata:
-        name: {{ service_account_name }}
-        namespace: {{ service_account_namespace }}
-        annotations:
-          kubernetes.io/service-account.name: {{ service_account_name }}
-      type: kubernetes.io/service-account-token
-    - apiVersion: rbac.authorization.k8s.io/v1
-      kind: ClusterRoleBinding
-      metadata:
-        name: {{ service_account_name }}
-      roleRef:
-        apiGroup: rbac.authorization.k8s.io
-        kind: ClusterRole
-        name: cluster-admin
-      subjects:
-        - kind: ServiceAccount
-          name: {{ service_account_name }}
-          namespace: {{ service_account_namespace }}
-"""
 
 MANAGED_SERVICE_ACCOUNT_TEMPLATE = """
 apiVersion: authentication.open-cluster-management.io/v1alpha1
 kind: ManagedServiceAccount
 metadata:
-  name: cluster-proxy
+  generateName: {{ cluster_name }}-managed-serviceaccount-
   namespace: {{ cluster_name }}
 spec:
   projected:
     type: None
   rotation: {}
-"""
-
-MANAGED_SERVICE_ACCOUNT_CLUSTER_ROLE_BINDING_TEMPLATE = """
-apiVersion: work.open-cluster-management.io/v1
-kind: ManifestWork
-metadata:
-  name: {{ managed_service_account_name }}.cluster-role-binding
-  namespace: {{ cluster_name }}
-spec:
-  workload:
-    manifests:
-    - apiVersion: rbac.authorization.k8s.io/v1
-      kind: ClusterRoleBinding
-      metadata:
-        name: {{ managed_service_account_name }}
-      roleRef:
-        apiGroup: rbac.authorization.k8s.io
-        kind: ClusterRole
-        name: cluster-admin
-      subjects:
-        - kind: ServiceAccount
-          name: {{ managed_service_account_name }}
-          namespace: {{ managed_service_account_namespace }}
 """
 
 
@@ -173,8 +126,8 @@ def ensure_managed_service_account_feature_enabled(hub_client):
     #  ACM
 
     cluster_management_addon_api = hub_client.resources.get(
-        api_version="addon.open-cluster-management.io/v1alpha1",
-        kind="ClusterManagementAddOn",
+        api_version='addon.open-cluster-management.io/v1alpha1',
+        kind='ClusterManagementAddOn',
     )
 
     return cluster_management_addon_api.get(name='managed-serviceaccount')
@@ -182,11 +135,11 @@ def ensure_managed_service_account_feature_enabled(hub_client):
 
 def get_hub_serviceaccount_secret(hub_client, managed_service_account):
     secret_api = hub_client.resources.get(
-        api_version="v1",
-        kind="Secret",
+        api_version='v1',
+        kind='Secret',
     )
     secret_name = managed_service_account.metadata.name
-    if managed_service_account.tokenSecretRef is not None and managed_service_account.tokenSecretRef.name != "":
+    if managed_service_account.tokenSecretRef is not None and managed_service_account.tokenSecretRef.name != '':
         secret_name = managed_service_account.tokenSecretRef.name
 
     secret = None
@@ -202,16 +155,16 @@ def get_hub_serviceaccount_secret(hub_client, managed_service_account):
 
 def wait_for_serviceaccount_secret(module: AnsibleModule, hub_client, managed_service_account, timeout=60):
     managed_service_account_api = hub_client.resources.get(
-        api_version="authentication.open-cluster-management.io/v1alpha1",
-        kind="ManagedServiceAccount",
+        api_version='authentication.open-cluster-management.io/v1alpha1',
+        kind='ManagedServiceAccount',
     )
 
     for event in managed_service_account_api.watch(namespace=managed_service_account.metadata.namespace, timeout=timeout):
-        if event["type"] in ["ADDED", "MODIFIED"] and event["object"].metadata.name == managed_service_account.metadata.name:
-            if "status" in event["object"].keys():
-                conditions = event["object"]["status"].get("conditions", [])
+        if event['type'] in ['ADDED', 'MODIFIED'] and event['object'].metadata.name == managed_service_account.metadata.name:
+            if 'status' in event['object'].keys():
+                conditions = event['object']['status'].get('conditions', [])
                 for condition in conditions:
-                    if condition["type"] == "SecretCreated" and condition["status"] == "True":
+                    if condition['type'] == 'SecretCreated' and condition['status'] == 'True':
                         return True
 
     return False
@@ -225,65 +178,21 @@ def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_se
         module.fail_json(msg=missing_required_lib('yaml'),
                          exception=IMP_ERR['yaml']['exception'])
     managed_cluster_name = managed_service_account_addon.metadata.namespace
-    managed_cluster_namespace = managed_service_account_addon.metadata.namespace
 
     managed_service_account_api = hub_client.resources.get(
-        api_version="authentication.open-cluster-management.io/v1alpha1",
-        kind="ManagedServiceAccount",
+        api_version='authentication.open-cluster-management.io/v1alpha1',
+        kind='ManagedServiceAccount',
     )
 
-    try:
-        managed_service_account = managed_service_account_api.get(
-            name='cluster-proxy',
-            namespace=managed_cluster_namespace,
-        )
-    except NotFoundError:
-        new_managed_service_account_raw = Template(MANAGED_SERVICE_ACCOUNT_TEMPLATE).render(
-            cluster_name=managed_cluster_name,
-        )
-        managed_service_account_yaml = yaml.safe_load(
-            new_managed_service_account_raw)
-        managed_service_account = managed_service_account_api.create(
-            managed_service_account_yaml)
+    new_managed_service_account_raw = Template(MANAGED_SERVICE_ACCOUNT_TEMPLATE).render(
+        cluster_name=managed_cluster_name,
+    )
+    managed_service_account_yaml = yaml.safe_load(
+        new_managed_service_account_raw)
+    managed_service_account = managed_service_account_api.create(
+        managed_service_account_yaml)
 
     return managed_service_account
-
-
-def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, managed_service_account, managed_service_account_addon):
-    if 'jinja2' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('jinja2'),
-                         exception=IMP_ERR['jinja2']['exception'])
-    if 'yaml' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('yaml'),
-                         exception=IMP_ERR['yaml']['exception'])
-    managed_cluster_name = managed_service_account_addon.metadata.namespace
-    managed_service_account_name = managed_service_account.metadata.name
-    managed_service_account_namespace = managed_service_account_addon.spec.installNamespace
-
-    manifest_work_api = hub_client.resources.get(
-        api_version="work.open-cluster-management.io/v1",
-        kind="ManifestWork",
-    )
-
-    new_manifest_work_raw = Template(MANAGED_SERVICE_ACCOUNT_CLUSTER_ROLE_BINDING_TEMPLATE).render(
-        cluster_name=managed_cluster_name,
-        managed_service_account_name=managed_service_account_name,
-        managed_service_account_namespace=managed_service_account_namespace,
-    )
-
-    new_manifest_work = yaml.safe_load(new_manifest_work_raw)
-
-    try:
-        manifest_work = manifest_work_api.get(
-            name=new_manifest_work['metadata']['name'],
-            namespace=new_manifest_work['metadata']['namespace'],
-        )
-        # TODO: validate existing service_account_manifest_work and verify that it is what we expected update if not
-    except NotFoundError:
-        manifest_work = manifest_work_api.create(new_manifest_work)
-        # TODO: we may need to wait for the manifest work to be applied
-
-    return manifest_work
 
 
 def execute_module(module: AnsibleModule):
@@ -310,10 +219,10 @@ def execute_module(module: AnsibleModule):
     ensure_managed_service_account_feature_enabled(hub_client)
 
     ensure_managed_cluster_addon_enabled(
-        module, hub_client, "managed-serviceaccount", managed_cluster_name)
+        module, hub_client, 'managed-serviceaccount', managed_cluster_name)
 
     managed_service_account_addon = get_managed_cluster_addon(
-        hub_client, "managed-serviceaccount", managed_cluster_name)
+        hub_client, 'managed-serviceaccount', managed_cluster_name)
     wait = module.params['wait']
     timeout = module.params['timeout']
     if timeout is None or timeout <= 0:
@@ -322,21 +231,17 @@ def execute_module(module: AnsibleModule):
         wait_for_addon_available(
             module, hub_client, managed_service_account_addon, timeout)
 
-    if not check_addon_available(hub_client, "managed-serviceaccount", managed_cluster_name):
+    if not check_addon_available(hub_client, 'managed-serviceaccount', managed_cluster_name):
         module.fail_json(
             msg=f'failed to check addon: addon managed-serviceaccount of {managed_cluster_name} is not available')
 
     managed_service_account = ensure_managed_service_account(
         module, hub_client, managed_service_account_addon)
-    ensure_managed_service_account_rbac(
-        module, hub_client, managed_service_account, managed_service_account_addon)
 
     # wait service account secret
     if wait:
         wait_for_serviceaccount_secret(
             module, hub_client, managed_service_account, timeout)
-    managed_service_account = ensure_managed_service_account(
-        module, hub_client, managed_service_account_addon)
 
     # grab secret
     secret = get_hub_serviceaccount_secret(hub_client, managed_service_account)
@@ -347,7 +252,12 @@ def execute_module(module: AnsibleModule):
     # get token
     token_bytes = base64.b64decode(secret.data.token)
     token = token_bytes.decode('ascii')
-    module.exit_json(token=token)
+    managed_serviceaccount = {
+        'name': managed_service_account.metadata.name,
+        'namespace': managed_service_account.metadata.namespace,
+        'token': token,
+    }
+    module.exit_json(managed_serviceaccount=managed_serviceaccount)
 
 
 def main():
