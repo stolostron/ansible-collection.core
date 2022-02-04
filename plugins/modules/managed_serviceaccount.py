@@ -42,7 +42,7 @@ options:
     state:
         description:
         - Determines if managed-serviceaccount should be created, or deleted. When set to C(present), an object will be
-        created. If set to C(absent), an existing object will be deleted. 
+        created. If set to C(absent), an existing object will be deleted.
         type: str
         default: present
         choices: [ absent, present ]
@@ -50,7 +50,7 @@ options:
     name:
         description:
         - Name of managed-serviceaccount.
-        - Required only if C(state=absent) 
+        - Required only if C(state=absent)
         type: str
 '''
 
@@ -301,8 +301,10 @@ def execute_module(module: AnsibleModule):
         secret = get_hub_serviceaccount_secret(
             hub_client, managed_service_account)
         if secret is None:
+            msan = managed_service_account.metadata.name
+            mcn = managed_cluster_name
             module.fail_json(
-                msg=f'failed to get secret: secret of managedserviceaccount {managed_service_account.metadata.name} of cluster {managed_cluster_name} is not found')
+                msg=f'failed to get secret: secret of managedserviceaccount {msan} of cluster {mcn} is not found')
 
         # get token
         token_bytes = base64.b64decode(secret.data.token)
