@@ -84,6 +84,7 @@ managed_serviceaccount:
         type: str
       managed_cluster:
         description: Managed cluster name
+        type: str
       token:
         description: ServiceAccount token
         type: str
