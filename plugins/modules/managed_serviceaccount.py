@@ -42,7 +42,7 @@ options:
     state:
         description:
         - Determines if managed-serviceaccount should be created, or deleted. When set to C(present), an object will be
-        created. If set to C(absent), an existing object will be deleted.
+          created. If set to C(absent), an existing object will be deleted.
         type: str
         default: present
         choices: [ absent, present ]
