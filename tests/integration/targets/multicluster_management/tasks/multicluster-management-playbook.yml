@@ -13,7 +13,8 @@
     debug:
       msg: "{{ cluster_proxy_url.cluster_url }}"
   - name: "Get managed ServiceAccount token for {{ hostvars[inventory_hostname].cluster_name }}"
-    ocmplus.cm.managed_serviceaccount_addon:
+    ocmplus.cm.managed_serviceaccount:
+      state: present
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
       wait: True
@@ -26,11 +27,12 @@
     ocmplus.cm.managed_serviceaccount_rbac:
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
-      managed_serviceaccount: "{{ managed_serviceaccount }}"
+      managed_serviceaccount_name: "{{ managed_serviceaccount.managed_serviceaccount.name }}"
       rbac_template: rbac
       wait: True
       timeout: 60
     register: result
+    ignore_errors: true
   - name: debug
     debug:
       msg: "{{ result.result }}"
@@ -48,14 +50,10 @@
           namespace: "{{ configmap_namespace }}"
     ignore_errors: true
   - name: "Removing managed ServiceAccount {{ managed_serviceaccount.managed_serviceaccount.name }} for {{ hostvars[inventory_hostname].cluster_name }}"
-    kubernetes.core.k8s:
-      kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+    ocmplus.cm.managed_serviceaccount:
       state: absent
-      definition:
-        apiVersion: authentication.open-cluster-management.io/v1alpha1
-        kind: ManagedServiceAccount
-        metadata:
-          name: "{{ managed_serviceaccount.managed_serviceaccount.name }}"
-          namespace: "{{ managed_serviceaccount.managed_serviceaccount.namespace }}"
-      wait: true
-      wait_timeout: 60
+      hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      name: "{{ managed_serviceaccount.managed_serviceaccount.name }}"
+      wait: True
+      timeout: 60

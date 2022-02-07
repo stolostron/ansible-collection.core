@@ -8,7 +8,7 @@ DOCUMENTATION = r'''
 
 module: managed_serviceaccount_rbac
 
-short_description: managed serviceaccount RBAC
+short_description: managed-serviceaccount RBAC
 
 author:
 - "Hao Liu (@TheRealHaoLiu)"
@@ -28,16 +28,16 @@ options:
         description: Name of the managed cluster.
         type: str
         required: True
-    managed_serviceaccount:
-        description: Managed serviceaccount information.
-        type: dict
+    managed_serviceaccount_name:
+        description: Name of managed-serviceaccount.
+        type: str
         required: True
     rbac_template:
-        description: Path to the RBAC role/clusterrrole/rolebinding/clusterrolebinding file or directory.
+        description: Path to the RBAC role/clusterrrole/rolebinding/clusterrolebinding YAML file or a directory of YAML files.
         type: str
         required: True
     wait:
-        description: Whether to wait for clusters to show up as managed clusters.
+        description: Whether to wait for the resources to show up.
         type: bool
         default: False
         required: False
@@ -53,7 +53,7 @@ EXAMPLES = r'''
   ocmplus.cm.managed_serviceaccount_rbac:
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
-    managed_serviceaccount: managed_serviceaccount
+    managed_serviceaccount_name: managed-serviceaccount-name
     rbac_template: /path/to/rbac_template
     wait: True
     timeout: 60
@@ -120,7 +120,7 @@ spec:
 """
 
 
-def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, managed_cluster_name, managed_serviceaccount, rbac_template):
+def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, managed_cluster_name, managed_serviceaccount_name, rbac_template):
     if 'jinja2' in IMP_ERR:
         module.fail_json(msg=missing_required_lib('jinja2'),
                          exception=IMP_ERR['jinja2']['exception'])
@@ -134,13 +134,13 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
     )
 
     managed_service_account = managed_service_account_api.get(
-        name=managed_serviceaccount['managed_serviceaccount']['name'],
-        namespace=managed_serviceaccount['managed_serviceaccount']['namespace'],
+        name=managed_serviceaccount_name,
+        namespace=managed_cluster_name,
     )
 
     if managed_service_account is None:
         module.fail_json(
-            msg=f"failed to get managed serviceaccount {managed_serviceaccount['managed_serviceaccount']['name']}")
+            msg=f"failed to get managed serviceaccount {managed_serviceaccount_name}")
 
     managed_service_account_addon = get_managed_cluster_addon(
         hub_client, 'managed-serviceaccount', managed_cluster_name)
@@ -241,7 +241,7 @@ def execute_module(module: AnsibleModule):
                          exception=IMP_ERR['k8s']['exception'])
 
     managed_cluster_name = module.params['managed_cluster']
-    managed_serviceaccount = module.params['managed_serviceaccount']
+    managed_serviceaccount_name = module.params['managed_serviceaccount_name']
     rbac_template = module.params['rbac_template']
     wait = module.params['wait']
     timeout = module.params['timeout']
@@ -260,7 +260,7 @@ def execute_module(module: AnsibleModule):
             msg=f"failed to get managedcluster {managed_cluster_name}")
 
     manifest_work = ensure_managed_service_account_rbac(
-        module, hub_client, managed_cluster_name, managed_serviceaccount, rbac_template)
+        module, hub_client, managed_cluster_name, managed_serviceaccount_name, rbac_template)
 
     if wait:
         wait_for_manifestwork_available(
@@ -275,7 +275,7 @@ def main():
         hub_kubeconfig=dict(type='str', required=True, fallback=(
             env_fallback, ['K8S_AUTH_KUBECONFIG'])),
         managed_cluster=dict(type='str', required=True),
-        managed_serviceaccount=dict(type='dict', required=True),
+        managed_serviceaccount_name=dict(type='str', required=True),
         rbac_template=dict(type='str', required=True),
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60),

@@ -6,9 +6,9 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 
-module: managed_serviceaccount_addon
+module: managed_serviceaccount
 
-short_description: managed serviceaccount addon
+short_description: managed serviceaccount
 
 author:
 - "Hao Liu (@TheRealHaoLiu)"
@@ -17,7 +17,7 @@ author:
 - "Tsu Phin Hee (@tphee)"
 
 description:
-- Use the managed-serviceaccount addon to setup a serviceaccount on a managedcluster,
+- Use the managed-serviceaccount to setup a serviceaccount on a managedcluster,
     and return the serviceaccount token.
 
 options:
@@ -26,12 +26,12 @@ options:
         type: str
         required: True
     wait:
-        description: Whether to wait for clusters to show up as managed clusters.
+        description: Whether to wait for managed-serviceaccount to show up.
         type: bool
         default: False
         required: False
     timeout:
-        description: Number of seconds to wait for the addons to show up.
+        description: Number of seconds to wait for the managed-serviceaccount to show up.
         type: int
         default: 60
         required: False
@@ -39,16 +39,38 @@ options:
         description: Name of managed cluster to create serviceaccount.
         type: str
         required: True
+    state:
+        description:
+        - Determines if managed-serviceaccount should be created, or deleted. When set to C(present), an object will be
+          created. If set to C(absent), an existing object will be deleted.
+        type: str
+        default: present
+        choices: [ absent, present ]
+        required: False
+    name:
+        description:
+        - Name of managed-serviceaccount.
+        - Required only if C(state=absent)
+        type: str
 '''
 
 EXAMPLES = r'''
 - name: "Get serviceaccount token"
-  ocmplus.cm.managed_serviceaccount_addon:
+  ocmplus.cm.managed_serviceaccount:
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
     wait: True
     timeout: 60
   register: managed_serviceaccount
+
+- name: "Remove an existing managed-serviceaccount object"
+  ocmplus.cm.managed_serviceaccount:
+    state: absent
+    hub_kubeconfig: /path/to/hub/kubeconfig
+    managed_cluster: example-cluster
+    name: managed-serviceaccount-name
+    wait: True
+    timeout: 60
 '''
 
 RETURN = r'''
@@ -58,15 +80,15 @@ managed_serviceaccount:
     type: complex
     contains:
       name:
-        description: The name of the managed ServiceAccount resource
+        description: Managed ServiceAccount name
         type: str
-      namespace:
-        description: The namespace of the managed ServiceAccount resource
+      managed_cluster:
+        description: Managed cluster name
         type: str
       token:
-        description: The token of the ServiceAccount
+        description: ServiceAccount token
         type: str
-    sample: {"name": "na...", "namespace": "na...", "token": "ey..."}
+    sample: {"name": "na...", "managed_cluster": "ma...", "token": "ey..."}
 err:
   description: Error message
   returned: when there's an error
@@ -195,6 +217,37 @@ def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_se
     return managed_service_account
 
 
+def get_managed_service_account(hub_client, managed_cluster_name, managed_serviceaccount_name):
+    managed_service_account_api = hub_client.resources.get(
+        api_version='authentication.open-cluster-management.io/v1alpha1',
+        kind='ManagedServiceAccount',
+    )
+
+    try:
+        managed_service_account = managed_service_account_api.get(
+            namespace=managed_cluster_name,
+            name=managed_serviceaccount_name,
+        )
+    except NotFoundError:
+        managed_service_account = None
+
+    return managed_service_account
+
+
+def delete_managed_service_account(hub_client, managed_service_account):
+    managed_service_account_api = hub_client.resources.get(
+        api_version='authentication.open-cluster-management.io/v1alpha1',
+        kind='ManagedServiceAccount',
+    )
+
+    status = managed_service_account_api.delete(
+        namespace=managed_service_account.metadata.namespace,
+        name=managed_service_account.metadata.name,
+    )
+
+    return (status.status == 'Success')
+
+
 def execute_module(module: AnsibleModule):
     if 'k8s' in IMP_ERR:
         # we will need k8s for this module
@@ -202,62 +255,86 @@ def execute_module(module: AnsibleModule):
                          exception=IMP_ERR['k8s']['exception'])
 
     managed_cluster_name = module.params['managed_cluster']
-
     hub_kubeconfig = kubernetes.config.load_kube_config(
         config_file=module.params['hub_kubeconfig'])
     hub_client = kubernetes.dynamic.DynamicClient(
         kubernetes.client.api_client.ApiClient(configuration=hub_kubeconfig)
     )
-
-    managed_cluster = get_managed_cluster(hub_client, managed_cluster_name)
-    if managed_cluster is None:
-        # TODO: throw error and exit
-        module.fail_json(
-            msg=f'failed to get managedcluster {managed_cluster_name}')
-        # TODO: there might be other exit condition
-
-    ensure_managed_service_account_feature_enabled(hub_client)
-
-    ensure_managed_cluster_addon_enabled(
-        module, hub_client, 'managed-serviceaccount', managed_cluster_name)
-
-    managed_service_account_addon = get_managed_cluster_addon(
-        hub_client, 'managed-serviceaccount', managed_cluster_name)
     wait = module.params['wait']
     timeout = module.params['timeout']
     if timeout is None or timeout <= 0:
         timeout = 60
-    if wait:
-        wait_for_addon_available(
-            module, hub_client, managed_service_account_addon, timeout)
+    state = module.params['state']
 
-    if not check_addon_available(hub_client, 'managed-serviceaccount', managed_cluster_name):
-        module.fail_json(
-            msg=f'failed to check addon: addon managed-serviceaccount of {managed_cluster_name} is not available')
+    if state == 'present':
+        managed_cluster = get_managed_cluster(hub_client, managed_cluster_name)
+        if managed_cluster is None:
+            # TODO: throw error and exit
+            module.fail_json(
+                msg=f'failed to get managedcluster {managed_cluster_name}')
+            # TODO: there might be other exit condition
 
-    managed_service_account = ensure_managed_service_account(
-        module, hub_client, managed_service_account_addon)
+        ensure_managed_service_account_feature_enabled(hub_client)
 
-    # wait service account secret
-    if wait:
-        wait_for_serviceaccount_secret(
-            module, hub_client, managed_service_account, timeout)
+        ensure_managed_cluster_addon_enabled(
+            module, hub_client, 'managed-serviceaccount', managed_cluster_name)
 
-    # grab secret
-    secret = get_hub_serviceaccount_secret(hub_client, managed_service_account)
-    if secret is None:
-        module.fail_json(
-            msg=f'failed to get secret: secret of managedserviceaccount {managed_service_account.metadata.name} of cluster {managed_cluster_name} is not found')
+        managed_service_account_addon = get_managed_cluster_addon(
+            hub_client, 'managed-serviceaccount', managed_cluster_name)
 
-    # get token
-    token_bytes = base64.b64decode(secret.data.token)
-    token = token_bytes.decode('ascii')
-    managed_serviceaccount = {
-        'name': managed_service_account.metadata.name,
-        'namespace': managed_service_account.metadata.namespace,
-        'token': token,
-    }
-    module.exit_json(managed_serviceaccount=managed_serviceaccount)
+        if wait:
+            wait_for_addon_available(
+                module, hub_client, managed_service_account_addon, timeout)
+
+        if not check_addon_available(hub_client, 'managed-serviceaccount', managed_cluster_name):
+            module.fail_json(
+                msg=f'failed to check addon: addon managed-serviceaccount of {managed_cluster_name} is not available')
+
+        managed_service_account = ensure_managed_service_account(
+            module, hub_client, managed_service_account_addon)
+
+        # wait service account secret
+        if wait:
+            wait_for_serviceaccount_secret(
+                module, hub_client, managed_service_account, timeout)
+
+        # grab secret
+        secret = get_hub_serviceaccount_secret(
+            hub_client, managed_service_account)
+        if secret is None:
+            msan = managed_service_account.metadata.name
+            mcn = managed_cluster_name
+            module.fail_json(
+                msg=f'failed to get secret: secret of managedserviceaccount {msan} of cluster {mcn} is not found')
+
+        # get token
+        token_bytes = base64.b64decode(secret.data.token)
+        token = token_bytes.decode('ascii')
+        managed_serviceaccount = {
+            'name': managed_service_account.metadata.name,
+            'managed_cluster': managed_cluster_name,
+            'token': token,
+        }
+        module.exit_json(
+            changed=True, managed_serviceaccount=managed_serviceaccount)
+    elif state == 'absent':
+        managed_serviceaccount_name = module.params['name']
+        managed_serviceaccount = {
+            'name': managed_serviceaccount_name,
+            'managed_cluster': managed_cluster_name,
+            'token': None,
+        }
+        managed_service_account = get_managed_service_account(
+            hub_client, managed_cluster_name, managed_serviceaccount_name)
+        if managed_service_account is None:
+            module.exit_json(
+                changed=False, managed_serviceaccount=managed_serviceaccount)
+        if delete_managed_service_account(hub_client, managed_service_account):
+            module.exit_json(
+                changed=True, managed_serviceaccount=managed_serviceaccount)
+        else:
+            module.fail_json(
+                msg=f'Error deleting managed-serviceaccount {managed_serviceaccount_name}')
 
 
 def main():
@@ -267,10 +344,17 @@ def main():
         managed_cluster=dict(type='str', required=True),
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60),
+        state=dict(
+            type="str", default="present", choices=["present", "absent"]
+        ),
+        name=dict(type='str'),
     )
 
     module = AnsibleModule(
         argument_spec=argument_spec,
+        required_if=[
+            ("state", "absent", ["name"]),
+        ],
         supports_check_mode=True,
     )
 
