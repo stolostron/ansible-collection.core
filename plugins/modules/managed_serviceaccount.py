@@ -35,6 +35,13 @@ options:
         type: int
         default: 60
         required: False
+    ttl_seconds_after_creation:
+        description:
+        - The lifetime of a ManagedServiceAccount in seconds. If set, the ManagedServiceAccount will be automatically deleted.
+          If this field is unset, the ManagedServiceAccount won't be automatically deleted.
+          If this field is set to zero, the ManagedServiceAccount becomes eligible to be deleted immediately after it creation.
+        type: int
+        required: False
     managed_cluster:
         description: Name of managed cluster to create serviceaccount.
         type: str
@@ -134,6 +141,9 @@ metadata:
   generateName: {{ cluster_name }}-managed-serviceaccount-
   namespace: {{ cluster_name }}
 spec:
+  {%- if ttl_seconds %}
+  ttlSecondsAfterCreation: {{ ttl_seconds }}
+  {%- endif %}
   projected:
     type: None
   rotation: {}
@@ -192,7 +202,7 @@ def wait_for_serviceaccount_secret(module: AnsibleModule, hub_client, managed_se
     return False
 
 
-def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_service_account_addon):
+def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_service_account_addon, ttl_seconds=None):
     if 'jinja2' in IMP_ERR:
         module.fail_json(msg=missing_required_lib('jinja2'),
                          exception=IMP_ERR['jinja2']['exception'])
@@ -206,8 +216,14 @@ def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_se
         kind='ManagedServiceAccount',
     )
 
+    render_config = {
+        'cluster_name': managed_cluster_name,
+    }
+    if ttl_seconds:
+        render_config['ttl_seconds'] = ttl_seconds
+
     new_managed_service_account_raw = Template(MANAGED_SERVICE_ACCOUNT_TEMPLATE).render(
-        cluster_name=managed_cluster_name,
+        render_config
     )
     managed_service_account_yaml = yaml.safe_load(
         new_managed_service_account_raw)
@@ -262,6 +278,10 @@ def execute_module(module: AnsibleModule):
     )
     wait = module.params['wait']
     timeout = module.params['timeout']
+    ttl_seconds = module.params['ttl_seconds_after_creation']
+    if ttl_seconds is not None and ttl_seconds < 0:
+        module.fail_json(msg='Expecting ttl_seconds_after_creation >= 0, ' +
+                         f'but ttl_seconds_after_creation={ttl_seconds}')
     if timeout is None or timeout <= 0:
         timeout = 60
     state = module.params['state']
@@ -291,7 +311,7 @@ def execute_module(module: AnsibleModule):
                 msg=f'failed to check addon: addon managed-serviceaccount of {managed_cluster_name} is not available')
 
         managed_service_account = ensure_managed_service_account(
-            module, hub_client, managed_service_account_addon)
+            module, hub_client, managed_service_account_addon, ttl_seconds)
 
         # wait service account secret
         if wait:
@@ -348,6 +368,7 @@ def main():
             type="str", default="present", choices=["present", "absent"]
         ),
         name=dict(type='str'),
+        ttl_seconds_after_creation=dict(type='int', required=False)
     )
 
     module = AnsibleModule(
