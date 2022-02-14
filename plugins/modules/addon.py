@@ -211,7 +211,7 @@ def main():
             type="str",
             default="present",
             choices=["present", "absent"],
-            require=True
+            required=True
         ),
     )
 
