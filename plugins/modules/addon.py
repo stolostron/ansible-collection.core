@@ -51,12 +51,13 @@ options:
         type: str
         default: present
         choices: [ absent, present ]
-        required: False
+        required: True
 '''
 
 EXAMPLES = r'''
 - name: "Enabled cluster-proxy addon"
   ocmplus.cm.addon:
+    state: present
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
     addon_name: cluster-proxy
