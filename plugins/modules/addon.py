@@ -51,7 +51,7 @@ options:
         type: str
         default: present
         choices: [ absent, present ]
-        required: True
+        required: False
 '''
 
 EXAMPLES = r'''
@@ -211,7 +211,7 @@ def main():
             type="str",
             default="present",
             choices=["present", "absent"],
-            required=True
+            required=False
         ),
     )
 
