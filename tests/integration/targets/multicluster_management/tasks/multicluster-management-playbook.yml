@@ -2,8 +2,15 @@
   hosts: "{{ target_hosts }}"
   connection: local
   tasks:
+  - name: "Install cluster-proxy addon for {{ hostvars[inventory_hostname].cluster_name }}"
+    ocmplus.cm.addon:
+      hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      addon_name: "cluster-proxy"
+      wait: True
+      timeout: 120
   - name: "Get ClusterProxy URL for {{ hostvars[inventory_hostname].cluster_name }}"
-    ocmplus.cm.cluster_proxy_addon:
+    ocmplus.cm.cluster_proxy:
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
       wait: True
@@ -12,6 +19,13 @@
   - name: debug
     debug:
       msg: "{{ cluster_proxy_url.cluster_url }}"
+  - name: "Install managed-serviceaccount addon for {{ hostvars[inventory_hostname].cluster_name }}"
+    ocmplus.cm.addon:
+      hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      addon_name: "managed-serviceaccount"
+      wait: True
+      timeout: 120
   - name: "Get managed ServiceAccount token for {{ hostvars[inventory_hostname].cluster_name }}"
     ocmplus.cm.managed_serviceaccount:
       state: present
@@ -22,7 +36,7 @@
     register: managed_serviceaccount
   - name: debug
     debug:
-      msg: "managed_serviceaccount_name: {{ managed_serviceaccount.managed_serviceaccount.name }}"
+      msg: "token length: {{ managed_serviceaccount.managed_serviceaccount.token | length }}"
   - name: "Configure ServiceAccount RBAC for {{ hostvars[inventory_hostname].cluster_name }}"
     ocmplus.cm.managed_serviceaccount_rbac:
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"

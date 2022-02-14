@@ -143,7 +143,7 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
             msg=f"failed to get managed serviceaccount {managed_serviceaccount_name}")
 
     managed_service_account_addon = get_managed_cluster_addon(
-        hub_client, 'managed-serviceaccount', managed_cluster_name)
+        hub_client, managed_cluster_name, 'managed-serviceaccount')
 
     if managed_service_account_addon is None:
         module.fail_json(
