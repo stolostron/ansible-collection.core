@@ -242,7 +242,7 @@ def check_multi_cluster_hub_feature(module: AnsibleModule, hub_client, addon_nam
     mch_list = mch_api.get()
     if len(mch_list.get('items', [])) != 1:
         return module.fail_json(
-            msg=f'MultiClusterHub not found')
+            msg='MultiClusterHub not found')
 
     mch = mch_list.items[0]
     if not getattr(mch.spec, addon_feature_map[addon_name]):

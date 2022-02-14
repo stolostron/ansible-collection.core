@@ -15,7 +15,7 @@ author:
 - "Hanqiu Zhang (@hanqiuzh)"
 - "Nathan Weatherly (@nathanweatherly)"
 
-description: 
+description:
 - Install the cluster proxy on a managedcluster, and get proxy url from the addon. cluster-admin permission
     on hub is assumed to enable the plugin.
 

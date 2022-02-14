@@ -41,11 +41,13 @@ options:
     addon_name:
         description: Name of the addon to enable/disable on a managed cluster.
         type: str
-        choices: [ cluster-proxy, managed-serviceaccount, policy-controller, cert-policy-controller, iam-policy-controller, application-manager, search-collector  ]
+        choices: [ cluster-proxy, managed-serviceaccount, policy-controller, cert-policy-controller,
+                   iam-policy-controller, application-manager, search-collector  ]
         required: True
     state:
         description:
-        - Determines if addon should be enabled, or disabled. When set to C(present), an addon will be enabled. If set to C(absent), an existing addon will be disabled.
+        - Determines if addon should be enabled, or disabled. When set to C(present),
+          an addon will be enabled. If set to C(absent), an existing addon will be disabled.
         type: str
         default: present
         choices: [ absent, present ]
