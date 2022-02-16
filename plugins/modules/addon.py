@@ -41,8 +41,7 @@ options:
     addon_name:
         description: Name of the addon to enable/disable on a managed cluster.
         type: str
-        choices: [ cluster-proxy, managed-serviceaccount, policy-controller, cert-policy-controller,
-                   iam-policy-controller, application-manager, search-collector  ]
+        choices: [ choices are dynamically generated based on the classes defined in the addons directory ]
         required: True
     state:
         description:
@@ -90,12 +89,18 @@ import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
-    check_multi_cluster_hub_feature,
-    check_cluster_management_addon_feature,
-    ensure_klusterlet_addon,
-    ensure_managed_cluster_addon,
+from ansible_collections.ocmplus.cm.plugins.module_utils.addons import (
+    application_manager,
+    cert_policy_controller,
+    cluster_proxy,
+    iam_policy_controller,
+    managed_serviceaccount,
+    policy_controller,
+    search_collector,
 )
+from pkgutil import iter_modules
+from pathlib import Path
+import os
 
 IMP_ERR = {}
 try:
@@ -104,56 +109,6 @@ try:
 except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
-
-
-def cluster_proxy(module: AnsibleModule, enabled, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
-    if enabled:
-        check_multi_cluster_hub_feature(module, hub_client, addon_name)
-
-    return ensure_managed_cluster_addon(module, enabled, hub_client, managed_cluster_name, addon_name, wait, timeout)
-
-
-def managed_serviceaccount(module: AnsibleModule, enabled, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
-    if enabled:
-        # check_multi_cluster_hub_feature(module, hub_client, addon_name)
-        check_cluster_management_addon_feature(module, hub_client, addon_name)
-
-    return ensure_managed_cluster_addon(module, enabled, hub_client, managed_cluster_name, addon_name, wait, timeout)
-
-
-def policy_controller(module: AnsibleModule, enabled, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
-    if enabled:
-        check_cluster_management_addon_feature(module, hub_client, addon_name)
-
-    return ensure_klusterlet_addon(module, enabled, hub_client, managed_cluster_name, addon_name, wait, timeout)
-
-
-def cert_policy_controller(module: AnsibleModule, enabled, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
-    if enabled:
-        check_cluster_management_addon_feature(module, hub_client, addon_name)
-
-    return ensure_klusterlet_addon(module, enabled, hub_client, managed_cluster_name, addon_name, wait, timeout)
-
-
-def iam_policy_controller(module: AnsibleModule, enabled, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
-    if enabled:
-        check_cluster_management_addon_feature(module, hub_client, addon_name)
-
-    return ensure_klusterlet_addon(module, enabled, hub_client, managed_cluster_name, addon_name, wait, timeout)
-
-
-def application_manager(module: AnsibleModule, enabled, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
-    if enabled:
-        check_cluster_management_addon_feature(module, hub_client, addon_name)
-
-    return ensure_klusterlet_addon(module, enabled, hub_client, managed_cluster_name, addon_name, wait, timeout)
-
-
-def search_collector(module: AnsibleModule, enabled, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
-    if enabled:
-        check_cluster_management_addon_feature(module, hub_client, addon_name)
-
-    return ensure_klusterlet_addon(module, enabled, hub_client, managed_cluster_name, addon_name, wait, timeout)
 
 
 def execute_module(module: AnsibleModule):
@@ -183,26 +138,27 @@ def execute_module(module: AnsibleModule):
 
     enabled = True if state == 'present' else False
     new_addon_name = addon_name.replace('-', '_')
-    globals()[new_addon_name](module, enabled, hub_client,
-                              managed_cluster_name, addon_name, wait, timeout)
+    new_addon = globals()[new_addon_name](module, enabled, hub_client,
+                                          managed_cluster_name, addon_name, wait, timeout)
+    new_addon.run()
 
 
 def main():
+    current_path = os.path.dirname(__file__)
+    path = current_path[:current_path.rfind('/')]
+    addons_path = f'{path}/module_utils/addons'
+    package_dir = Path(addons_path).resolve()
+    addon_choices = []
+    for (_, module_name, _) in iter_modules([package_dir]):
+        addon_choices.append(module_name.replace('_', '-'))
+
     argument_spec = dict(
         hub_kubeconfig=dict(type='str', required=True, fallback=(
             env_fallback, ['K8S_AUTH_KUBECONFIG'])),
         managed_cluster=dict(type='str', required=True),
         addon_name=dict(
             type='str',
-            choices=[
-                "cluster-proxy",
-                "managed-serviceaccount",
-                "policy-controller",
-                "cert-policy-controller",
-                "iam-policy-controller",
-                "application-manager",
-                "search-collector"
-            ],
+            choices=addon_choices,
             required=True
         ),
         wait=dict(type='bool', required=False, default=False),
