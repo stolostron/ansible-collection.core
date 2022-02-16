@@ -41,13 +41,13 @@ options:
     addon_name:
         description: Name of the addon to enable/disable on a managed cluster.
         type: str
-        choices: [  application_manager,
-                    cert_policy_controller,
-                    cluster_proxy,
-                    iam_policy_controller,
-                    managed_serviceaccount,
-                    policy_controller,
-                    search_collector
+        choices: [  application-manager,
+                    cert-policy-controller,
+                    cluster-proxy,
+                    iam-policy-controller,
+                    managed-serviceaccount,
+                    policy-controller,
+                    search-collector
                  ]
         required: True
     state:
