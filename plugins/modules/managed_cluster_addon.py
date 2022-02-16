@@ -6,9 +6,9 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 
-module: addon
+module: managed_cluster_addon
 
-short_description: addon
+short_description: managed cluster addon
 
 author:
 - "Hao Liu (@TheRealHaoLiu)"
@@ -17,7 +17,7 @@ author:
 - "Tsu Phin Hee (@tphee)"
 
 description:
-- Use addon to enable/disable an addon on a managedcluster.
+- Use managed_cluster_addon to enable/disable an addon on a managedcluster.
 
 options:
     hub_kubeconfig:
@@ -41,7 +41,14 @@ options:
     addon_name:
         description: Name of the addon to enable/disable on a managed cluster.
         type: str
-        choices: [ choices are dynamically generated based on the classes defined in the addons directory ]
+        choices: [  application_manager,
+                    cert_policy_controller,
+                    cluster_proxy,
+                    iam_policy_controller,
+                    managed_serviceaccount,
+                    policy_controller,
+                    search_collector
+                 ]
         required: True
     state:
         description:
@@ -55,7 +62,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Enabled cluster-proxy addon"
-  ocmplus.cm.addon:
+  ocmplus.cm.managed_cluster_addon:
     state: present
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
@@ -64,7 +71,7 @@ EXAMPLES = r'''
     timeout: 120
 
 - name: "Disabled cluster-proxy addon"
-  ocmplus.cm.addon:
+  ocmplus.cm.managed_cluster_addon:
     state: absent
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
@@ -89,7 +96,7 @@ import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.addons import (
+from ansible_collections.ocmplus.cm.plugins.module_utils.managed_cluster_addons import (
     application_manager,
     cert_policy_controller,
     cluster_proxy,
@@ -146,10 +153,10 @@ def execute_module(module: AnsibleModule):
 def main():
     current_path = os.path.dirname(__file__)
     path = current_path[:current_path.rfind('/')]
-    addons_path = f'{path}/module_utils/addons'
+    addons_path = f'{path}/module_utils/managed_cluster_addons'
     package_dir = Path(addons_path).resolve()
     addon_choices = []
-    for (_, module_name, _) in iter_modules([package_dir]):
+    for (x, module_name, y) in iter_modules([package_dir]):
         addon_choices.append(module_name.replace('_', '-'))
 
     argument_spec = dict(
