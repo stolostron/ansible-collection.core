@@ -3,8 +3,6 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import time
-import string
-import random
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, missing_required_lib
@@ -42,9 +40,8 @@ spec:
 
 # superclass
 class addon_base():
-    def __init__(self, module: AnsibleModule, enabled, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
+    def __init__(self, module: AnsibleModule, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
         self.module = module
-        self.enabled = enabled
         self.hub_client = hub_client
         self.managed_cluster_name = managed_cluster_name
         self.addon_name = addon_name

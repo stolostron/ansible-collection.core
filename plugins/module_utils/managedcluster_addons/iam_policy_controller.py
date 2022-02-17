@@ -8,9 +8,9 @@ from .addon_base import addon_base
 
 # subclass
 class iam_policy_controller(addon_base):
-    def __init__(self, module: AnsibleModule, enabled, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
-        super().__init__(module, enabled, hub_client,
-                         managed_cluster_name, addon_name, wait, timeout)
+    def __init__(self, module: AnsibleModule, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
+        super().__init__(module, hub_client, managed_cluster_name, addon_name, wait, timeout)
+
 
     def check_feature(self):
         self.check_cluster_management_addon_feature(
