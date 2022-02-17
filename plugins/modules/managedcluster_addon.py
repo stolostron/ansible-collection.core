@@ -6,7 +6,7 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 
-module: managed_cluster_addon
+module: managedcluster_addon
 
 short_description: managed cluster addon
 
@@ -17,7 +17,7 @@ author:
 - "Tsu Phin Hee (@tphee)"
 
 description:
-- Use managed_cluster_addon to enable/disable an addon on a managedcluster.
+- Use managedcluster_addon to enable/disable an addon on a managedcluster.
 
 options:
     hub_kubeconfig:
@@ -62,7 +62,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Enabled cluster-proxy addon"
-  ocmplus.cm.managed_cluster_addon:
+  ocmplus.cm.managedcluster_addon:
     state: present
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
@@ -71,7 +71,7 @@ EXAMPLES = r'''
     timeout: 120
 
 - name: "Disabled cluster-proxy addon"
-  ocmplus.cm.managed_cluster_addon:
+  ocmplus.cm.managedcluster_addon:
     state: absent
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
@@ -92,22 +92,20 @@ err:
   sample: null
 '''
 
+import os
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.managed_cluster_addons import (
-    application_manager,
-    cert_policy_controller,
-    cluster_proxy,
-    iam_policy_controller,
-    managed_serviceaccount,
-    policy_controller,
-    search_collector,
-)
+from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.application_manager import application_manager
+from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.cert_policy_controller import cert_policy_controller
+from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.cluster_proxy import cluster_proxy
+from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.iam_policy_controller import iam_policy_controller
+from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.managed_serviceaccount import managed_serviceaccount
+from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.policy_controller import policy_controller
+from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.search_collector import search_collector
 from pkgutil import iter_modules
 from pathlib import Path
-import os
 
 IMP_ERR = {}
 try:
@@ -147,17 +145,22 @@ def execute_module(module: AnsibleModule):
     new_addon_name = addon_name.replace('-', '_')
     new_addon = globals()[new_addon_name](module, enabled, hub_client,
                                           managed_cluster_name, addon_name, wait, timeout)
-    new_addon.run()
+    if enabled:
+        new_addon.check_feature()
+        new_addon.enable_addon()
+    else:
+        new_addon.disable_addon()
 
 
 def main():
     current_path = os.path.dirname(__file__)
     path = current_path[:current_path.rfind('/')]
-    addons_path = f'{path}/module_utils/managed_cluster_addons'
+    addons_path = f'{path}/module_utils/managedcluster_addons'
     package_dir = Path(addons_path).resolve()
     addon_choices = []
-    for (x, module_name, y) in iter_modules([package_dir]):
-        addon_choices.append(module_name.replace('_', '-'))
+    for (loader, module_name, ispkg) in iter_modules([package_dir]):
+        if module_name != 'addon_base':
+            addon_choices.append(module_name.replace('_', '-'))
 
     argument_spec = dict(
         hub_kubeconfig=dict(type='str', required=True, fallback=(

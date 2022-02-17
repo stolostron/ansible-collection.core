@@ -73,14 +73,13 @@ err:
 '''
 
 import os
+import string
+import random
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
-    get_managed_cluster_addon,
-    generate_random_string,
-)
+from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import get_managed_cluster_addon
 
 IMP_ERR = {}
 try:
@@ -118,6 +117,10 @@ spec:
   workload:
     manifests: []
 """
+
+
+def generate_random_string(size: int = 16):
+    return ''.join(random.choice(string.ascii_lowercase + string.digits) for s in range(size))
 
 
 def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, managed_cluster_name, managed_serviceaccount_name, rbac_template):
