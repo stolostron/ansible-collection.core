@@ -11,7 +11,6 @@ class cluster_proxy(addon_base):
     def __init__(self, module: AnsibleModule, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
         super().__init__(module, hub_client, managed_cluster_name, addon_name, wait, timeout)
 
-
     def check_feature(self):
         self.check_multi_cluster_hub_feature(
             self.module,
