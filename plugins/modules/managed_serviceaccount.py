@@ -103,17 +103,13 @@ err:
   sample: null
 '''
 
+import time
 import base64
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
-    check_addon_available,
-    get_managed_cluster_addon,
-    wait_for_addon_available,
-    ensure_managed_cluster_addon_enabled,
-)
+from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import check_addon_available
 
 IMP_ERR = {}
 try:
@@ -150,21 +146,6 @@ spec:
 """
 
 
-def ensure_managed_service_account_feature_enabled(hub_client):
-    # NOTE: managed service account is not a supported feature in ACM yet and it's currently a upstream proposed feature
-    #       for more information see https://github.com/open-cluster-management-io/enhancements/pull/24
-    # TODO: the code currently only check if managed-serviceaccount feature is enabled
-    #  it does not enable the feature yet this code will need to be updated when the feature become officially part of
-    #  ACM
-
-    cluster_management_addon_api = hub_client.resources.get(
-        api_version='addon.open-cluster-management.io/v1alpha1',
-        kind='ClusterManagementAddOn',
-    )
-
-    return cluster_management_addon_api.get(name='managed-serviceaccount')
-
-
 def get_hub_serviceaccount_secret(hub_client, managed_service_account):
     secret_api = hub_client.resources.get(
         api_version='v1',
@@ -191,25 +172,27 @@ def wait_for_serviceaccount_secret(module: AnsibleModule, hub_client, managed_se
         kind='ManagedServiceAccount',
     )
 
-    for event in managed_service_account_api.watch(namespace=managed_service_account.metadata.namespace, timeout=timeout):
-        if event['type'] in ['ADDED', 'MODIFIED'] and event['object'].metadata.name == managed_service_account.metadata.name:
-            if 'status' in event['object'].keys():
-                conditions = event['object']['status'].get('conditions', [])
-                for condition in conditions:
-                    if condition['type'] == 'SecretCreated' and condition['status'] == 'True':
-                        return True
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        for event in managed_service_account_api.watch(namespace=managed_service_account.metadata.namespace, timeout=timeout):
+            if event['type'] in ['ADDED', 'MODIFIED'] and event['object'].metadata.name == managed_service_account.metadata.name:
+                if 'status' in event['object'].keys():
+                    conditions = event['object']['status'].get(
+                        'conditions', [])
+                    for condition in conditions:
+                        if condition['type'] == 'SecretCreated' and condition['status'] == 'True':
+                            return True
 
     return False
 
 
-def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_service_account_addon, ttl_seconds=None):
+def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_cluster_name, ttl_seconds=None):
     if 'jinja2' in IMP_ERR:
         module.fail_json(msg=missing_required_lib('jinja2'),
                          exception=IMP_ERR['jinja2']['exception'])
     if 'yaml' in IMP_ERR:
         module.fail_json(msg=missing_required_lib('yaml'),
                          exception=IMP_ERR['yaml']['exception'])
-    managed_cluster_name = managed_service_account_addon.metadata.namespace
 
     managed_service_account_api = hub_client.resources.get(
         api_version='authentication.open-cluster-management.io/v1alpha1',
@@ -294,24 +277,13 @@ def execute_module(module: AnsibleModule):
                 msg=f'failed to get managedcluster {managed_cluster_name}')
             # TODO: there might be other exit condition
 
-        ensure_managed_service_account_feature_enabled(hub_client)
-
-        ensure_managed_cluster_addon_enabled(
-            module, hub_client, 'managed-serviceaccount', managed_cluster_name)
-
-        managed_service_account_addon = get_managed_cluster_addon(
-            hub_client, 'managed-serviceaccount', managed_cluster_name)
-
-        if wait:
-            wait_for_addon_available(
-                module, hub_client, managed_service_account_addon, timeout)
-
-        if not check_addon_available(hub_client, 'managed-serviceaccount', managed_cluster_name):
+        addon_name = 'managed-serviceaccount'
+        if not check_addon_available(hub_client, managed_cluster_name, addon_name):
             module.fail_json(
-                msg=f'failed to check addon: addon managed-serviceaccount of {managed_cluster_name} is not available')
+                msg=f'failed to check addon: {addon_name} of {managed_cluster_name} is not available')
 
         managed_service_account = ensure_managed_service_account(
-            module, hub_client, managed_service_account_addon, ttl_seconds)
+            module, hub_client, managed_cluster_name, ttl_seconds)
 
         # wait service account secret
         if wait:

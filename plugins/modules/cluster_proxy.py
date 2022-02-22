@@ -6,16 +6,18 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 
-module: cluster_proxy_addon
+module: cluster_proxy
 
-short_description: cluster proxy addon
+short_description: cluster proxy
 
 author:
 - "Hao Liu (@TheRealHaoLiu)"
 - "Hanqiu Zhang (@hanqiuzh)"
 - "Nathan Weatherly (@nathanweatherly)"
 
-description: Install the cluster proxy addon, and get proxy url from the addon. cluster-admin permission on hub is assumed to enable the plugin.
+description:
+- Install the cluster proxy on a managedcluster, and get proxy url from the addon. cluster-admin permission
+    on hub is assumed to enable the plugin.
 
 options:
     hub_kubeconfig:
@@ -40,7 +42,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Get proxy cluster url for example-cluster"
-  ocmplus.cm.cluster_proxy_addon:
+  ocmplus.cm.cluster_proxy:
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
   register: cluster_proxy_url
@@ -63,10 +65,7 @@ import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import (
-    ensure_managed_cluster_addon_enabled,
-    wait_for_addon_available,
-)
+from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import check_addon_available
 
 IMP_ERR = {}
 try:
@@ -89,33 +88,6 @@ except ImportError as e:
                           'exception': e}
 
 
-def ensure_cluster_proxy_feature_enabled(hub_client) -> dict:
-    # get all instance of mch
-    mch_api = hub_client.resources.get(
-        api_version="operator.open-cluster-management.io/v1",
-        kind="MultiClusterHub",
-    )
-
-    mch_list = mch_api.get()
-    if len(mch_list.get('items', [])) != 1:
-        # TODO: throw error
-        return mch_list
-
-    mch = mch_list.items[0]
-    if mch.spec.enableClusterProxyAddon:
-        return mch
-
-    mch.spec.enableClusterProxyAddon = True
-    mch = mch_api.patch(
-        name=mch.metadata.name,
-        namespace=mch.metadata.namespace,
-        body=mch_list.to_dict()['items'][0],
-        content_type="application/merge-patch+json",
-    )
-
-    return mch
-
-
 def get_hub_proxy_route(hub_client, ocm_namespace: str):
     route_api = hub_client.resources.get(
         api_version="route.openshift.io/v1", kind="Route")
@@ -132,7 +104,7 @@ def wait_for_proxy_route_available(url, timeout=60):
     retries = urllib3.util.retry.Retry(total=max_retry,
                                        backoff_factor=timeout /
                                        max_retry / (max_retry + 1),
-                                       status_forcelist=[500, 502, 503, 504])
+                                       status_forcelist=[400, 500, 502, 503, 504])
     session = requests.Session()
     session.mount(
         'https://', requests.adapters.HTTPAdapter(max_retries=retries))
@@ -170,7 +142,10 @@ def execute_module(module: AnsibleModule):
         kubernetes.client.api_client.ApiClient(configuration=hub_kubeconfig)
     )
 
+    wait = module.params['wait']
     timeout = module.params['timeout']
+    if timeout is None or timeout <= 0:
+        timeout = 60
     managed_cluster = get_managed_cluster(hub_client, managed_cluster_name)
     if managed_cluster is None:
         # TODO: throw error and exit
@@ -178,14 +153,10 @@ def execute_module(module: AnsibleModule):
                          err=f"failed to get managedcluster {managed_cluster_name} not found")
         # TODO: there might be other exit condition
 
-    ensure_cluster_proxy_feature_enabled(hub_client)
-    cluster_proxy_addon = ensure_managed_cluster_addon_enabled(
-        module, hub_client, "cluster-proxy", managed_cluster_name, "open-cluster-management-agent-addon")
-
-    wait = module.params['wait']
-    if wait:
-        wait_for_addon_available(
-            module, hub_client, cluster_proxy_addon, timeout)
+    addon_name = 'cluster-proxy'
+    if not check_addon_available(hub_client, managed_cluster_name, addon_name):
+        module.fail_json(
+            msg=f'failed to check addon: {addon_name} of {managed_cluster_name} is not available')
 
     ocm_namespace = get_ocm_install_namespace(hub_client)
     if ocm_namespace is None:
