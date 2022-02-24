@@ -57,26 +57,52 @@ class addon_base():
     def disable_addon(self):
         pass
 
-    def check_multi_cluster_hub_feature(self, module: AnsibleModule, hub_client, addon_name) -> dict:
-        addon_feature_map = {
-            "cluster-proxy": "enableClusterProxyAddon",
-            "managed-serviceaccount": "managedServiceAccount"
-        }
+    def enable_feature(self):
+        pass
+
+    def disable_feature(self):
+        pass
+
+    def get_multi_cluster_hub(self):
         # get all instance of mch
-        mch_api = hub_client.resources.get(
+        mch_api = self.hub_client.resources.get(
             api_version="operator.open-cluster-management.io/v1",
             kind="MultiClusterHub",
         )
-
         mch_list = mch_api.get()
-        if len(mch_list.get('items', [])) != 1:
-            return module.fail_json(
-                msg='MultiClusterHub not found')
+        if len(mch_list.get('items', [])) < 1:
+            self.module.fail_json(msg='MultiClusterHub not found.')
 
-        mch = mch_list.items[0]
-        if not getattr(mch.spec, addon_feature_map[addon_name]):
-            return module.fail_json(
-                msg=f'failed to check feature: {addon_feature_map[addon_name]} of MultiClusterHub is not enabled')
+        first_mch = mch_list.items[0]
+        mch = None
+        # get mch directly for return
+        try:
+            mch = mch_api.get(name=first_mch.metadata.name,
+                              namespace=first_mch.metadata.namespace)
+        except DynamicApiError:
+            self.module.fail_json(
+                msg=f'failed to get MultiClusterHub {first_mch.metadata.name} in {first_mch.metadata.namespace} namespace.')
+
+        return mch
+
+    def wait_for_feature_enabled(self) -> bool:
+        cluster_management_addon_api = self.hub_client.resources.get(
+            api_version='addon.open-cluster-management.io/v1alpha1',
+            kind='ClusterManagementAddOn',
+        )
+
+        start_time = time.time()
+        while time.time() - start_time < self.timeout:
+            for event in cluster_management_addon_api.watch(namespace='', timeout=self.timeout):
+                if event["type"] in ["ADDED", "MODIFIED"] and event["object"].metadata.name == self.addon_name:
+                    return True
+
+        # do a final check incase we missed the creation event
+        try:
+            cluster_management_addon_api.get(name=self.addon_name)
+            return True
+        except DynamicApiError:
+            return False
 
     def check_cluster_management_addon_feature(self, module: AnsibleModule, hub_client, addon_name):
         cluster_management_addon_api = hub_client.resources.get(
@@ -87,7 +113,7 @@ class addon_base():
         try:
             return cluster_management_addon_api.get(name=addon_name)
         except NotFoundError:
-            return module.fail_json(
+            module.fail_json(
                 msg=f'failed to check feature: {addon_name} of ClusterManagementAddOn is not enabled')
 
     def enable_managed_cluster_addon(self, module: AnsibleModule, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
