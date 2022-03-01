@@ -9,7 +9,7 @@ from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 
 IMP_ERR = {}
 try:
-    from kubernetes.dynamic.exceptions import NotFoundError, DynamicApiError
+    from kubernetes.dynamic.exceptions import NotFoundError, DynamicApiError, ResourceNotFoundError
     from kubernetes.client.exceptions import ApiException
 except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
@@ -63,15 +63,26 @@ class addon_base():
     def disable_feature(self):
         pass
 
-    def get_multi_cluster_hub(self):
+    def get_multi_cluster_hub(self, ignore_not_found=False):
         # get all instance of mch
-        mch_api = self.hub_client.resources.get(
-            api_version="operator.open-cluster-management.io/v1",
-            kind="MultiClusterHub",
-        )
-        mch_list = mch_api.get()
-        if len(mch_list.get('items', [])) < 1:
-            self.module.fail_json(msg='MultiClusterHub not found.')
+        try:
+            mch_api = self.hub_client.resources.get(
+                api_version="operator.open-cluster-management.io/v1",
+                kind="MultiClusterHub",
+            )
+            mch_list = mch_api.get()
+        except (ResourceNotFoundError, NotFoundError) as e:
+            if not ignore_not_found:
+                self.module.fail_json(
+                    msg=f'failed to list MultiClusterHub: {e}')
+            else:
+                return None
+
+        if ignore_not_found and len(mch_list.get('items', [])) < 1:
+            return None
+        elif len(mch_list.get('items', [])) < 1:
+            self.module.fail_json(
+                msg='failed to get MultiClusterHub.')
 
         first_mch = mch_list.items[0]
         mch = None
@@ -79,11 +90,38 @@ class addon_base():
         try:
             mch = mch_api.get(name=first_mch.metadata.name,
                               namespace=first_mch.metadata.namespace)
-        except DynamicApiError:
+        except DynamicApiError as e:
             self.module.fail_json(
-                msg=f'failed to get MultiClusterHub {first_mch.metadata.name} in {first_mch.metadata.namespace} namespace.')
+                msg=f'failed to get MultiClusterHub {first_mch.metadata.name} in {first_mch.metadata.namespace} namespace: {e}')
 
         return mch
+
+    def get_multi_cluster_engine(self):
+        # get all instance of mch
+        try:
+            mce_api = self.hub_client.resources.get(
+                api_version="multicluster.openshift.io/v1",
+                kind="MultiClusterEngine",
+            )
+            mce_list = mce_api.get()
+            if len(mce_list.get('items', [])) < 1:
+                self.module.fail_json(
+                    msg='failed to get MultiClusterEngine.')
+        except DynamicApiError as e:
+            self.module.fail_json(
+                msg=f'failed to get MultiClusterEngine: {e}.')
+
+        first_mce = mce_list.items[0]
+        mce = None
+        # get mch directly for return
+        try:
+            mce = mce_api.get(name=first_mce.metadata.name,
+                              namespace=first_mce.metadata.namespace)
+        except DynamicApiError as e:
+            self.module.fail_json(
+                msg=f'failed to get MultiClusterEngine {first_mce.metadata.name}: {e}')
+
+        return mce
 
     def wait_for_feature_enabled(self) -> bool:
         cluster_management_addon_api = self.hub_client.resources.get(

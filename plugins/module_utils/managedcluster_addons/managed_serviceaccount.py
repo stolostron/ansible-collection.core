@@ -51,12 +51,19 @@ class managed_serviceaccount(addon_base):
         )
 
     def enable_feature(self):
-        mch = self.get_multi_cluster_hub()
+        mch = self.get_multi_cluster_hub(ignore_not_found=True)
         changed = False
-        if not self.get_multi_cluster_hub_feature_enablement(mch):
-            # need to update mch
-            self.update_multi_cluster_hub_feature(mch, True)
-            changed = True
+        if mch is None:
+            mce = self.get_multi_cluster_engine()
+            if not self.get_feature_enablement(mce):
+                # need to update mch
+                self.update_multi_cluster_engine_feature(mce, True)
+                changed = True
+        else:
+            if not self.get_feature_enablement(mch):
+                # need to update mch
+                self.update_multi_cluster_hub_feature(mch, True)
+                changed = True
 
         if self.wait:
             # wait clusterdeployment to be created
@@ -74,13 +81,45 @@ class managed_serviceaccount(addon_base):
         return changed
 
     def disable_feature(self):
-        mch = self.get_multi_cluster_hub()
+        mch = self.get_multi_cluster_hub(ignore_not_found=True)
         changed = False
-        if self.get_multi_cluster_hub_feature_enablement(mch):
-            # need to update mch
-            changed = True
-            self.update_multi_cluster_hub_feature(mch, False)
+        if mch is None:
+            mce = self.get_multi_cluster_engine()
+            if self.get_feature_enablement(mce):
+                changed = True
+                self.update_multi_cluster_engine_feature(mce, False)
+        else:
+            if self.get_feature_enablement(mch):
+                # need to update mch
+                changed = True
+                self.update_multi_cluster_hub_feature(mch, False)
         return changed
+
+    def update_multi_cluster_engine_feature(self, mce, state=False):
+        mce_api = self.hub_client.resources.get(
+            api_version="multicluster.openshift.io/v1",
+            kind="MultiClusterEngine",
+        )
+        patch_body = {
+            "apiVersion": "multicluster.openshift.io/v1",
+            "kind": "MultiClusterEngine",
+            "metadata": {
+                "name": mce.metadata.name,
+            },
+            "spec": {
+                "componentConfig": {
+                    "managedServiceAccount": {
+                        "enable": state,
+                    },
+                },
+            },
+        }
+        try:
+            mce_api.patch(body=patch_body,
+                          content_type="application/merge-patch+json")
+        except DynamicApiError as e:
+            self.module.fail_json(
+                msg=f'failed to patch MultiClusterHub {mce.metadata.name}.', err=e)
 
     def update_multi_cluster_hub_feature(self, mch, state=False):
         mch_api = self.hub_client.resources.get(
@@ -109,7 +148,8 @@ class managed_serviceaccount(addon_base):
             self.module.fail_json(
                 msg=f'failed to patch MultiClusterHub {mch.metadata.name} in {mch.metadata.namespace} namespace.', err=e)
 
-    def get_multi_cluster_hub_feature_enablement(self, mch):
+    # get_feature_enablement gets enablement of managedserviceaccount from a MultiClusterHub CR or a MultiClusterEngine CR
+    def get_feature_enablement(self, mch):
         mch_feature_path = ['spec', 'componentConfig',
                             'managedServiceAccount', 'enable']
         curr = mch
