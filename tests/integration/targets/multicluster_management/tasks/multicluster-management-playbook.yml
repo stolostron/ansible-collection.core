@@ -36,12 +36,12 @@
     register: managed_serviceaccount
   - name: debug
     debug:
-      msg: "token length: {{ managed_serviceaccount.managed_serviceaccount.token | length }}"
+      msg: "token length: {{ managed_serviceaccount.token | length }}"
   - name: "Configure ServiceAccount RBAC for {{ hostvars[inventory_hostname].cluster_name }}"
     ocmplus.cm.managed_serviceaccount_rbac:
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
-      managed_serviceaccount_name: "{{ managed_serviceaccount.managed_serviceaccount.name }}"
+      managed_serviceaccount_name: "{{ managed_serviceaccount.name }}"
       rbac_template: rbac
       wait: True
       timeout: 60
@@ -55,7 +55,7 @@
       state: present
       host: "{{ cluster_proxy_url.cluster_url }}"
       validate_certs: no
-      api_key: "{{ managed_serviceaccount.managed_serviceaccount.token }}"
+      api_key: "{{ managed_serviceaccount.token }}"
       definition:
         apiVersion: v1
         kind: ConfigMap
@@ -63,11 +63,11 @@
           name: "{{ configmap_name }}"
           namespace: "{{ configmap_namespace }}"
     ignore_errors: true
-  - name: "Removing managed ServiceAccount {{ managed_serviceaccount.managed_serviceaccount.name }} for {{ hostvars[inventory_hostname].cluster_name }}"
+  - name: "Removing managed ServiceAccount {{ managed_serviceaccount.name }} for {{ hostvars[inventory_hostname].cluster_name }}"
     ocmplus.cm.managed_serviceaccount:
       state: absent
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
-      name: "{{ managed_serviceaccount.managed_serviceaccount.name }}"
+      name: "{{ managed_serviceaccount.name }}"
       wait: True
       timeout: 60
