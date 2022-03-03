@@ -81,21 +81,18 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
-managed_serviceaccount:
-    description: A dictionary of Managed ServiceAccount information
-    returned: only when Managed ServiceAccount addon is enabled and available
-    type: complex
-    contains:
-      name:
-        description: Managed ServiceAccount name
-        type: str
-      managed_cluster:
-        description: Managed cluster name
-        type: str
-      token:
-        description: ServiceAccount token
-        type: str
-    sample: {"name": "na...", "managed_cluster": "ma...", "token": "ey..."}
+name:
+  description: Managed ServiceAccount name
+  returned: success
+  type: str
+managed_cluster:
+  description: Managed cluster name
+  returned: success
+  type: str
+token:
+  description: ServiceAccount token
+  returned: success
+  type: str
 err:
   description: Error message
   returned: when there's an error
@@ -308,7 +305,7 @@ def execute_module(module: AnsibleModule):
             'token': token,
         }
         module.exit_json(
-            changed=True, managed_serviceaccount=managed_serviceaccount)
+            changed=True, **managed_serviceaccount)
     elif state == 'absent':
         managed_serviceaccount_name = module.params['name']
         managed_serviceaccount = {
@@ -320,10 +317,10 @@ def execute_module(module: AnsibleModule):
             hub_client, managed_cluster_name, managed_serviceaccount_name)
         if managed_service_account is None:
             module.exit_json(
-                changed=False, managed_serviceaccount=managed_serviceaccount)
+                changed=False, **managed_serviceaccount)
         if delete_managed_service_account(hub_client, managed_service_account):
             module.exit_json(
-                changed=True, managed_serviceaccount=managed_serviceaccount)
+                changed=True, **managed_serviceaccount)
         else:
             module.fail_json(
                 msg=f'Error deleting managed-serviceaccount {managed_serviceaccount_name}')
