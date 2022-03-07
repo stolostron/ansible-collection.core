@@ -1,0 +1,54 @@
+name: Docs Check
+on:
+  # Run publish check against all pushes (direct commits, also merged PRs), Pull Requests
+  push:
+    branches: [ main, release-* ]
+  pull_request:
+    branches: [ main, release-* ]
+  # manual trigger
+  workflow_dispatch:
+
+env:
+  NAMESPACE: ocmplus
+  COLLECTION_NAME: cm
+  COLLECTION_VERSION: 0.0.1 
+
+jobs:
+  check_docs:
+    name: Check Plugin Docs 
+    strategy:
+      matrix:
+        ansible:
+          - stable-2.12
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install ansible-base (${{ matrix.ansible }})
+        run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Install docs requirements
+        run: pip install -r docs-build/requirements.txt
+      - name: Install collection
+        run: ansible-galaxy collection install $(pwd)
+
+      - name: Run docs build
+        run: ./docs-build/build.sh
+
+      - name: Move rst files
+        run: tree docs-build && cp -f docs-build/temp-rst/* docs/ && tree docs && git status
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4.9.2
+        with:
+          commit_message: Update docs
+          commit_options: '--signoff'
+          file_pattern: docs/*.rst
+          commit_user_name: GitHub Actions
+          commit_user_email: noreply@github.com
+          commit_author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>    
+      
