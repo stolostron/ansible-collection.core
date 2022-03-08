@@ -33,8 +33,12 @@ options:
         type: str
         required: True
     rbac_template:
-        description: Path to the RBAC role/clusterrrole/rolebinding/clusterrolebinding YAML file or a directory of YAML files.
-        type: str
+        description:
+        - Path to the file or directory that contains the role/clusterrrole/rolebinding/clusterrolebinding configuration.
+        - The path specified should either be the absolute or relative to the location of the playbook.
+        - In order to avoid potential resource name collision, the name specified in the RBAC files
+          will be appended with the last 12 digit of UID of the target managed-serviceaccount.
+        type: path
         required: True
     wait:
         description: Whether to wait for the resources to show up.
@@ -114,11 +118,13 @@ spec:
 """
 
 
-def generate_random_string(size: int = 16):
-    return ''.join(random.choice(string.ascii_lowercase + string.digits) for s in range(size))
-
-
-def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, managed_cluster_name, managed_serviceaccount_name, rbac_template):
+def ensure_managed_service_account_rbac(
+        module: AnsibleModule,
+        hub_client,
+        managed_cluster_name,
+        managed_serviceaccount_name,
+        rbac_template
+):
     if 'jinja2' in IMP_ERR:
         module.fail_json(msg=missing_required_lib('jinja2'),
                          exception=IMP_ERR['jinja2']['exception'])
@@ -147,7 +153,7 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
         module.fail_json(
             msg="failed to get managed serviceaccount addon managed-serviceaccount")
 
-    random_string = generate_random_string()
+    random_string = managed_service_account.metadata.uid.split('-')[-1]
 
     new_manifest_work_raw = Template(MANIFEST_WORK_TEMPLATE).render(
         cluster_name=managed_cluster_name,
@@ -290,7 +296,7 @@ def main():
             env_fallback, ['K8S_AUTH_KUBECONFIG'])),
         managed_cluster=dict(type='str', required=True),
         managed_serviceaccount_name=dict(type='str', required=True),
-        rbac_template=dict(type='str', required=True),
+        rbac_template=dict(type='path', required=True),
         wait=dict(type='bool', required=False, default=False),
         timeout=dict(type='int', required=False, default=60),
     )
