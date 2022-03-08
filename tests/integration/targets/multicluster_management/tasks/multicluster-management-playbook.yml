@@ -2,46 +2,47 @@
   hosts: "{{ target_hosts }}"
   connection: local
   tasks:
-  - name: "Install cluster-proxy addon for {{ hostvars[inventory_hostname].cluster_name }}"
+  - name: "Install cluster-proxy addon"
     ocmplus.cm.managedcluster_addon:
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
       addon_name: "cluster-proxy"
       wait: True
       timeout: 180
-  - name: "Get ClusterProxy URL for {{ hostvars[inventory_hostname].cluster_name }}"
+  - name: "Get ClusterProxy URL"
     ocmplus.cm.cluster_proxy:
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
       wait: True
       timeout: 60
-    register: cluster_proxy_url
+    register: cluster_proxy
   - name: debug
     debug:
-      msg: "{{ cluster_proxy_url.cluster_url }}"
-  - name: "Install managed-serviceaccount addon for {{ hostvars[inventory_hostname].cluster_name }}"
+      msg: "{{ cluster_proxy.cluster_url }}"
+  - name: "Install managed-serviceaccount addon"
     ocmplus.cm.managedcluster_addon:
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
       addon_name: "managed-serviceaccount"
       wait: True
       timeout: 120
-  - name: "Get managed ServiceAccount token for {{ hostvars[inventory_hostname].cluster_name }}"
+  - name: "Create static name managed-serviceaccount"
     ocmplus.cm.managed_serviceaccount:
       state: present
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      name: "static-name"
       wait: True
       timeout: 60
-    register: managed_serviceaccount
+    register: static_name_managed_serviceaccount
   - name: debug
     debug:
-      msg: "token length: {{ managed_serviceaccount.token | length }}"
-  - name: "Configure ServiceAccount RBAC for {{ hostvars[inventory_hostname].cluster_name }}"
+      msg: "token length: {{ static_name_managed_serviceaccount.token | length }}"
+  - name: "Configure ServiceAccount RBAC for {{ static_name_managed_serviceaccount.name }}"
     ocmplus.cm.managed_serviceaccount_rbac:
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
-      managed_serviceaccount_name: "{{ managed_serviceaccount.name }}"
+      managed_serviceaccount_name: "{{ static_name_managed_serviceaccount.name }}"
       rbac_template: rbac
       wait: True
       timeout: 60
@@ -50,24 +51,69 @@
   - name: debug
     debug:
       msg: "{{ result.result }}"
-  - name: "Creating configmap {{ configmap_name }} on {{ hostvars[inventory_hostname].cluster_name }}"
+  - name: "Creating configmap {{ configmap_name }}"
     kubernetes.core.k8s:
       state: present
-      host: "{{ cluster_proxy_url.cluster_url }}"
+      host: "{{ cluster_proxy.cluster_url }}"
       validate_certs: no
-      api_key: "{{ managed_serviceaccount.token }}"
+      api_key: "{{ static_name_managed_serviceaccount.token }}"
       definition:
         apiVersion: v1
         kind: ConfigMap
         metadata:
           name: "{{ configmap_name }}"
-          namespace: "{{ configmap_namespace }}"
-    ignore_errors: true
-  - name: "Removing managed ServiceAccount {{ managed_serviceaccount.name }} for {{ hostvars[inventory_hostname].cluster_name }}"
+          namespace: "default"
+  - name: "Removing static-name managed ServiceAccount {{ static_name_managed_serviceaccount.name }}"
     ocmplus.cm.managed_serviceaccount:
       state: absent
       hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
       managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
-      name: "{{ managed_serviceaccount.name }}"
+      name: "{{ static_name_managed_serviceaccount.name }}"
+      wait: True
+      timeout: 60
+  - name: "Create managed-serviceaccount with generated name"
+    ocmplus.cm.managed_serviceaccount:
+      state: present
+      hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      generate_name: "generate-name-"
+      wait: True
+      timeout: 60
+    register: generate_name_managed_serviceaccount
+  - name: debug
+    debug:
+      msg: "token length: {{ generate_name_managed_serviceaccount.token | length }}"
+  - name: "Configure ServiceAccount RBAC for {{ generate_name_managed_serviceaccount.name }}"
+    ocmplus.cm.managed_serviceaccount_rbac:
+      hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      managed_serviceaccount_name: "{{ generate_name_managed_serviceaccount.name }}"
+      rbac_template: rbac
+      wait: True
+      timeout: 60
+    register: result
+    ignore_errors: true
+  - name: debug
+    debug:
+      msg: "{{ result.result }}"
+  - name: "Delete configmap {{ configmap_name }}"
+    kubernetes.core.k8s:
+      state: absent
+      host: "{{ cluster_proxy.cluster_url }}"
+      validate_certs: no
+      api_key: "{{ generate_name_managed_serviceaccount.token }}"
+      definition:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: "{{ configmap_name }}"
+          namespace: "default"
+    ignore_errors: true
+  - name: "Removing generate-name managed ServiceAccount {{ generate_name_managed_serviceaccount.name }}"
+    ocmplus.cm.managed_serviceaccount:
+      state: absent
+      hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
+      managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
+      name: "{{ generate_name_managed_serviceaccount.name }}"
       wait: True
       timeout: 60

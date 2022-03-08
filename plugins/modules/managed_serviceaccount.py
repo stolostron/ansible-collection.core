@@ -25,6 +25,42 @@ options:
         description: Path to the Hub cluster kubeconfig. Can also be specified via K8S_AUTH_KUBECONFIG environment variable.
         type: str
         required: True
+    state:
+        description:
+        - Determines if managed-serviceaccount should be created, or deleted. When set to C(present), an object will be
+          created. If set to C(absent), an existing object will be deleted.
+        type: str
+        default: present
+        choices: [ absent, present ]
+        required: False
+    managed_cluster:
+        description: Name of managed cluster to create serviceaccount.
+        type: str
+        required: True
+    name:
+        description:
+        - This field specify the name of managed-serviceaccount.
+        - The name must be unique for a specific managed-cluster.
+        - Use this field for persistent and long lived managed-serviceaccount.
+        - Consider using generate_name if the managed-serviceaccount is temporary to avoid collision between playbooks.
+        - Required if C(state=absent)
+        type: str
+    generate_name:
+        description:
+        - This field is a prefix used to generate a unique name if the name field has not been provided.
+        - If this field is used the value will be combined with a unique suffix.
+        - The provided value has the same validation rules as the name field and may truncate by the length of the
+          suffix required to make the value unique.
+        - Consider using this field with ttl_seconds_after_creation to avoid accumulation of managed-serviceaccount objects.
+        type: str
+    ttl_seconds_after_creation:
+        description:
+        - The lifetime of a ManagedServiceAccount in seconds.
+          If set, the ManagedServiceAccount will be automatically deleted.
+          If this field is unset, the ManagedServiceAccount won't be automatically deleted.
+          If this field is set to zero, the ManagedServiceAccount will be deleted immediately after it creation.
+        type: int
+        required: False
     wait:
         description: Whether to wait for managed-serviceaccount to show up.
         type: bool
@@ -35,30 +71,6 @@ options:
         type: int
         default: 60
         required: False
-    ttl_seconds_after_creation:
-        description:
-        - The lifetime of a ManagedServiceAccount in seconds. If set, the ManagedServiceAccount will be automatically deleted.
-          If this field is unset, the ManagedServiceAccount won't be automatically deleted.
-          If this field is set to zero, the ManagedServiceAccount becomes eligible to be deleted immediately after it creation.
-        type: int
-        required: False
-    managed_cluster:
-        description: Name of managed cluster to create serviceaccount.
-        type: str
-        required: True
-    state:
-        description:
-        - Determines if managed-serviceaccount should be created, or deleted. When set to C(present), an object will be
-          created. If set to C(absent), an existing object will be deleted.
-        type: str
-        default: present
-        choices: [ absent, present ]
-        required: False
-    name:
-        description:
-        - Name of managed-serviceaccount.
-        - Required only if C(state=absent)
-        type: str
 '''
 
 EXAMPLES = r'''
@@ -127,52 +139,55 @@ except ImportError as e:
                       'exception': e}
 
 
-MANAGED_SERVICE_ACCOUNT_TEMPLATE = """
+MANAGED_SERVICEACCOUNT_TEMPLATE = """
 apiVersion: authentication.open-cluster-management.io/v1alpha1
 kind: ManagedServiceAccount
 metadata:
-  generateName: {{ cluster_name }}-managed-serviceaccount-
-  namespace: {{ cluster_name }}
+{%- if name %}
+  name: {{ name }}
+{%- else %}
+  generateName: {{ generate_name | default("") }}
+{%- endif %}
+  namespace: {{ managed_cluster }}
 spec:
-  {%- if ttl_seconds %}
-  ttlSecondsAfterCreation: {{ ttl_seconds }}
+  {%- if ttl_seconds_after_creation %}
+  ttlSecondsAfterCreation: {{ ttl_seconds_after_creation }}
   {%- endif %}
-  projected:
-    type: None
   rotation: {}
 """
 
 
-def get_hub_serviceaccount_secret(hub_client, managed_service_account):
+def get_hub_serviceaccount_secret(hub_client, managed_serviceaccount):
     secret_api = hub_client.resources.get(
         api_version='v1',
         kind='Secret',
     )
-    secret_name = managed_service_account.metadata.name
-    if managed_service_account.tokenSecretRef is not None and managed_service_account.tokenSecretRef.name != '':
-        secret_name = managed_service_account.tokenSecretRef.name
+    secret_name = managed_serviceaccount.metadata.name
+    if managed_serviceaccount.tokenSecretRef is not None and managed_serviceaccount.tokenSecretRef.name != '':
+        secret_name = managed_serviceaccount.tokenSecretRef.name
 
     secret = None
     try:
         secret = secret_api.get(
             name=secret_name,
-            namespace=managed_service_account.metadata.namespace
+            namespace=managed_serviceaccount.metadata.namespace
         )
     except NotFoundError:
         return None
+
     return secret
 
 
-def wait_for_serviceaccount_secret(module: AnsibleModule, hub_client, managed_service_account, timeout=60):
-    managed_service_account_api = hub_client.resources.get(
+def wait_for_serviceaccount_secret(module: AnsibleModule, hub_client, managed_serviceaccount, timeout=60):
+    managed_serviceaccount_api = hub_client.resources.get(
         api_version='authentication.open-cluster-management.io/v1alpha1',
         kind='ManagedServiceAccount',
     )
 
     start_time = time.time()
     while time.time() - start_time < timeout:
-        for event in managed_service_account_api.watch(namespace=managed_service_account.metadata.namespace, timeout=timeout):
-            if event['type'] in ['ADDED', 'MODIFIED'] and event['object'].metadata.name == managed_service_account.metadata.name:
+        for event in managed_serviceaccount_api.watch(namespace=managed_serviceaccount.metadata.namespace, timeout=timeout):
+            if event['type'] in ['ADDED', 'MODIFIED'] and event['object'].metadata.name == managed_serviceaccount.metadata.name:
                 if 'status' in event['object'].keys():
                     conditions = event['object']['status'].get(
                         'conditions', [])
@@ -183,7 +198,7 @@ def wait_for_serviceaccount_secret(module: AnsibleModule, hub_client, managed_se
     return False
 
 
-def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_cluster_name, ttl_seconds=None):
+def ensure_managed_serviceaccount(module: AnsibleModule, hub_client, managed_cluster_name, ttl_seconds=None):
     if 'jinja2' in IMP_ERR:
         module.fail_json(msg=missing_required_lib('jinja2'),
                          exception=IMP_ERR['jinja2']['exception'])
@@ -191,54 +206,62 @@ def ensure_managed_service_account(module: AnsibleModule, hub_client, managed_cl
         module.fail_json(msg=missing_required_lib('yaml'),
                          exception=IMP_ERR['yaml']['exception'])
 
-    managed_service_account_api = hub_client.resources.get(
+    managed_serviceaccount_api = hub_client.resources.get(
         api_version='authentication.open-cluster-management.io/v1alpha1',
         kind='ManagedServiceAccount',
     )
 
-    render_config = {
-        'cluster_name': managed_cluster_name,
-    }
-    if ttl_seconds:
-        render_config['ttl_seconds'] = ttl_seconds
+    managed_serviceaccount = None
 
-    new_managed_service_account_raw = Template(MANAGED_SERVICE_ACCOUNT_TEMPLATE).render(
-        render_config
-    )
-    managed_service_account_yaml = yaml.safe_load(
-        new_managed_service_account_raw)
-    managed_service_account = managed_service_account_api.create(
-        managed_service_account_yaml)
+    if module.params['name']:
+        managed_serviceaccount = get_managed_serviceaccount(
+            hub_client,
+            module.params['managed_cluster'],
+            module.params['name'],
+        )
 
-    return managed_service_account
+    new_managed_serviceaccount_raw = Template(MANAGED_SERVICEACCOUNT_TEMPLATE).render(module.params)
+    managed_serviceaccount_yaml = yaml.safe_load(new_managed_serviceaccount_raw)
+
+    if managed_serviceaccount is None:
+        managed_serviceaccount = managed_serviceaccount_api.create(managed_serviceaccount_yaml)
+    else:
+        managed_serviceaccount = managed_serviceaccount_api.patch(
+            name=module.params['name'],
+            namespace=module.params['managed_cluster'],
+            body=managed_serviceaccount_yaml,
+            content_type="application/merge-patch+json",
+        )
+
+    return managed_serviceaccount
 
 
-def get_managed_service_account(hub_client, managed_cluster_name, managed_serviceaccount_name):
-    managed_service_account_api = hub_client.resources.get(
+def get_managed_serviceaccount(hub_client, managed_cluster_name, managed_serviceaccount_name):
+    managed_serviceaccount_api = hub_client.resources.get(
         api_version='authentication.open-cluster-management.io/v1alpha1',
         kind='ManagedServiceAccount',
     )
 
     try:
-        managed_service_account = managed_service_account_api.get(
+        managed_serviceaccount = managed_serviceaccount_api.get(
             namespace=managed_cluster_name,
             name=managed_serviceaccount_name,
         )
     except NotFoundError:
-        managed_service_account = None
+        managed_serviceaccount = None
 
-    return managed_service_account
+    return managed_serviceaccount
 
 
-def delete_managed_service_account(hub_client, managed_service_account):
-    managed_service_account_api = hub_client.resources.get(
+def delete_managed_serviceaccount(hub_client, managed_serviceaccount):
+    managed_serviceaccount_api = hub_client.resources.get(
         api_version='authentication.open-cluster-management.io/v1alpha1',
         kind='ManagedServiceAccount',
     )
 
-    status = managed_service_account_api.delete(
-        namespace=managed_service_account.metadata.namespace,
-        name=managed_service_account.metadata.name,
+    status = managed_serviceaccount_api.delete(
+        namespace=managed_serviceaccount.metadata.namespace,
+        name=managed_serviceaccount.metadata.name,
     )
 
     return (status.status == 'Success')
@@ -279,19 +302,19 @@ def execute_module(module: AnsibleModule):
             module.fail_json(
                 msg=f'failed to check addon: {addon_name} of {managed_cluster_name} is not available')
 
-        managed_service_account = ensure_managed_service_account(
+        managed_serviceaccount = ensure_managed_serviceaccount(
             module, hub_client, managed_cluster_name, ttl_seconds)
 
         # wait service account secret
         if wait:
             wait_for_serviceaccount_secret(
-                module, hub_client, managed_service_account, timeout)
+                module, hub_client, managed_serviceaccount, timeout)
 
         # grab secret
         secret = get_hub_serviceaccount_secret(
-            hub_client, managed_service_account)
+            hub_client, managed_serviceaccount)
         if secret is None:
-            msan = managed_service_account.metadata.name
+            msan = managed_serviceaccount.metadata.name
             mcn = managed_cluster_name
             module.fail_json(
                 msg=f'failed to get secret: secret of managedserviceaccount {msan} of cluster {mcn} is not found')
@@ -300,7 +323,7 @@ def execute_module(module: AnsibleModule):
         token_bytes = base64.b64decode(secret.data.token)
         token = token_bytes.decode('ascii')
         managed_serviceaccount = {
-            'name': managed_service_account.metadata.name,
+            'name': managed_serviceaccount.metadata.name,
             'managed_cluster': managed_cluster_name,
             'token': token,
         }
@@ -308,19 +331,21 @@ def execute_module(module: AnsibleModule):
             changed=True, **managed_serviceaccount)
     elif state == 'absent':
         managed_serviceaccount_name = module.params['name']
-        managed_serviceaccount = {
+        ret = {
             'name': managed_serviceaccount_name,
             'managed_cluster': managed_cluster_name,
             'token': None,
         }
-        managed_service_account = get_managed_service_account(
+        managed_serviceaccount = get_managed_serviceaccount(
             hub_client, managed_cluster_name, managed_serviceaccount_name)
-        if managed_service_account is None:
+
+        if managed_serviceaccount is None:
             module.exit_json(
-                changed=False, **managed_serviceaccount)
-        if delete_managed_service_account(hub_client, managed_service_account):
+                changed=False, **ret)
+
+        if delete_managed_serviceaccount(hub_client, managed_serviceaccount):
             module.exit_json(
-                changed=True, **managed_serviceaccount)
+                changed=True, **ret)
         else:
             module.fail_json(
                 msg=f'Error deleting managed-serviceaccount {managed_serviceaccount_name}')
@@ -337,7 +362,8 @@ def main():
             type="str", default="present", choices=["present", "absent"]
         ),
         name=dict(type='str'),
-        ttl_seconds_after_creation=dict(type='int', required=False)
+        generate_name=dict(type='str'),
+        ttl_seconds_after_creation=dict(type='int', required=False),
     )
 
     module = AnsibleModule(
@@ -345,6 +371,8 @@ def main():
         required_if=[
             ("state", "absent", ["name"]),
         ],
+        required_one_of=[["name", "generate_name"]],
+        mutually_exclusive=[["name", "generate_name"]],
         supports_check_mode=True,
     )
 
