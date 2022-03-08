@@ -65,11 +65,6 @@ result:
     - message describing the RBAC configuration successfully done.
     returned: success
     type: str
-err:
-  description: Error message
-  returned: when there's an error
-  type: str
-  sample: null
 '''
 
 import os

@@ -73,11 +73,6 @@ result:
     description: message describing the addon enabled/disabled successfully done.
     returned: success
     type: str
-err:
-  description: Error message
-  returned: when there's an error
-  type: str
-  sample: null
 '''
 
 import traceback

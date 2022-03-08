@@ -1,0 +1,64 @@
+name: Docs Check
+on:
+  # Run docs check against all pushes every day
+  # If there is any docs need to update, will create a PR to update
+  schedule:
+    - cron: '59 23 * * *'
+  # manual trigger
+  workflow_dispatch:
+
+env:
+  NAMESPACE: ocmplus
+  COLLECTION_NAME: cm
+  COLLECTION_VERSION: 0.0.1
+
+jobs:
+  check_docs:
+    name: Check Plugin Docs 
+    strategy:
+      matrix:
+        ansible:
+          - stable-2.12
+        branch:
+          # will scan these branch to create prs
+          - main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install ansible-base (${{ matrix.ansible }})
+        run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ matrix.branch }}
+      - name: Install docs requirements
+        run: pip install -r docs-build/requirements.txt
+      - name: Install collection
+        run: ansible-galaxy collection install $(pwd)
+
+      - name: Run docs build
+        run: ./docs-build/build.sh
+
+      - name: Move rst files
+        run: tree docs-build && cp -f docs-build/temp-rst/* docs/ && tree docs && git status
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: Update docs
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          signoff: true
+          branch: ${{ matrix.branch }}-bot-docs
+          delete-branch: true
+          title: '[Github Action] Update Docs'
+          body: |
+            Update Docs
+          draft: false
+          #assignees: 
+          #reviewers: 

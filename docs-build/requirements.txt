@@ -1,0 +1,4 @@
+antsibull == 0.30.0
+ansible-pygments
+sphinx
+sphinx-ansible-theme >= 0.9.0
