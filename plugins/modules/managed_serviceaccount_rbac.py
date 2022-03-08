@@ -210,8 +210,24 @@ def ensure_managed_service_account_rbac(module: AnsibleModule, hub_client, manag
         kind='ManifestWork',
     )
 
-    manifest_work = manifest_work_api.create(new_manifest_work)
+    manifest_work = None
+    try:
+        manifest_work = manifest_work_api.get(
+            namespace=managed_cluster_name,
+            name=managed_serviceaccount_name,
+        )
+    except NotFoundError:
+        manifest_work = None
 
+    if manifest_work is None:
+        manifest_work = manifest_work_api.create(new_manifest_work)
+    else:
+        manifest_work = manifest_work_api.patch(
+            namespace=managed_cluster_name,
+            name=managed_serviceaccount_name,
+            body=new_manifest_work,
+            content_type="application/merge-patch+json",
+        )
     return manifest_work
 
 
