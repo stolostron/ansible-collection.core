@@ -114,13 +114,15 @@ Parameters
                     <b>rbac_template</b>
                     <a class="ansibleOptionLink" href="#parameter-rbac_template" title="Permalink to this option"></a>
                     <div style="font-size: small">
-                        <span style="color: purple">string</span>
+                        <span style="color: purple">path</span>
                                                  / <span style="color: red">required</span>                    </div>
                                                         </td>
                                 <td>
                                                                                                                                                             </td>
                                                                 <td>
-                                            <div>Path to the RBAC role/clusterrrole/rolebinding/clusterrolebinding YAML file or a directory of YAML files.</div>
+                                            <div>Path to the file or directory that contains the role/clusterrrole/rolebinding/clusterrolebinding configuration.</div>
+                                            <div>The path specified should either be the absolute or relative to the location of the playbook.</div>
+                                            <div>In order to avoid potential resource name collision, the name specified in the RBAC files will be appended with the last 12 digit of UID of the target managed-serviceaccount.</div>
                                                         </td>
             </tr>
                                 <tr>
@@ -205,21 +207,6 @@ Common return values are documented :ref:`here <common_return_values>`, the foll
             <th width="100%">Description</th>
         </tr>
                     <tr>
-                                <td colspan="1">
-                    <div class="ansibleOptionAnchor" id="return-err"></div>
-                    <b>err</b>
-                    <a class="ansibleOptionLink" href="#return-err" title="Permalink to this return value"></a>
-                    <div style="font-size: small">
-                      <span style="color: purple">string</span>
-                                          </div>
-                                    </td>
-                <td>when there&#x27;s an error</td>
-                <td>
-                                            <div>Error message</div>
-                                        <br/>
-                                    </td>
-            </tr>
-                                <tr>
                                 <td colspan="1">
                     <div class="ansibleOptionAnchor" id="return-result"></div>
                     <b>result</b>
