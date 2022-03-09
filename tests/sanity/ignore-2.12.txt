@@ -1,0 +1,4 @@
+tests/integration/targets/multicluster_management/tasks/rbac/role.yaml yamllint:unparsable-with-libyaml
+tests/integration/targets/multicluster_management/tasks/rbac/rolebinding.yaml yamllint:unparsable-with-libyaml
+tests/unit/plugins/modules/fixtures/rbac_template/bad_rbac.yml yamllint:unparsable-with-libyaml
+tests/unit/plugins/modules/fixtures/rbac_template/five_object_file.yml yamllint:unparsable-with-libyaml
