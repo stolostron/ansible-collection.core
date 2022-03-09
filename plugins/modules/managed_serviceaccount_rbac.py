@@ -199,46 +199,90 @@ def ensure_managed_service_account_rbac(
 
     # split up the yaml resources base on their type
     # this will also filter out non RBAC resources
+
     rbac_kinds = ['Role', 'ClusterRole', 'RoleBinding', 'ClusterRoleBinding']
     rbac_resources = dict()
     for kind in rbac_kinds:
-        rbac_resources[kind] = []
+        # dict index by namespace/name of the resource for easy searching
+        rbac_resources[kind] = dict()
 
     for resource in yaml_resources:
-        if resource['kind'] in rbac_kinds:
-            rbac_resources[resource['kind']].append(resource)
+        kind = resource.get('kind')
+        if kind in rbac_kinds:
+            metadata = resource.get('metadata')
+            if metadata is None:
+                # TODO: throw error or warning, malformed resource detected
+                continue
 
-    # if the clusterrolebinding/rolebinding contains subject
-    # we ignore them because we only allow binding to the managed-serviceaccount
-    for rolebinding in rbac_resources['ClusterRoleBinding'] + rbac_resources['RoleBinding']:
+            name = metadata.get('name')
+            if name is None:
+                # TODO: throw error or warning, malformed resource detected
+                continue
+
+            namespace = metadata.get('namespace')
+            if 'Cluster' in kind and namespace is not None:
+                # TODO: throw error or warning, malformed resource detected
+                continue
+
+            if 'Cluster' not in kind and namespace is None:
+                # TODO: throw error or warning, malformed resource detected
+                continue
+
+            if 'RoleBinding' in kind and resource.get('roleRef') is None:
+                role_ref = resource.get('roleRef')
+                if role_ref is None:
+                    # TODO: throw error or warning, malformed resource detected
+                    continue
+                if role_ref.get('apiGroup') is None:
+                    # TODO: throw error or warning, malformed resource detected
+                    continue
+                if role_ref.get('kind') is None:
+                    # TODO: throw error or warning, malformed resource detected
+                    continue
+                if role_ref.get('name') is None:
+                    # TODO: throw error or warning, malformed resource detected
+                    continue
+
+            namespaced_name = f"{namespace}/{name}"
+            exist = rbac_resources[kind].get(namespaced_name)
+            if exist is not None:
+                # TODO: resource with duplicate namespaced_name detected, throw error
+                continue
+
+            rbac_resources[kind][namespaced_name] = resource
+
+    # namespaced_named indexed dict to keep track of which roles we used
+    referenced_roles = dict()
+
+    for kind, rolebinding in {**rbac_resources['ClusterRoleBinding'], **rbac_resources['RoleBinding']}.items():
         # make rolebinding name unique
         rolebinding['metadata']['name'] = f"{rolebinding['metadata']['name']}-{random_string}"
+        # rebind subjects
+        if rolebinding.get('subjects') is not None:
+            # TODO: throw warning that subject in rbac resource will be ignored
+            pass
         rolebinding['subjects'] = [role_subject]
+        # rename roleRef.name for roles that we are creating
+        role_ref_name = rolebinding['roleRef']['name']
+        role_ref_namespace = rolebinding['metadata'].get('namespace')
+        role_ref_kind = rolebinding['roleRef']['kind']
+        role_ref_namespaced_name = f"{role_ref_namespace}/{role_ref_name}"
+        if rbac_resources.get(role_ref_kind, dict()).get(role_ref_namespaced_name) is not None:
+            referenced_roles[role_ref_namespaced_name] = True
+            rolebinding['roleRef']['name'] = f"{rolebinding['roleRef']['name']}-{random_string}"
 
-    for clusterrolebinding in rbac_resources['ClusterRoleBinding']:
-        for clusterrole in rbac_resources['ClusterRole']:
-            if clusterrole['metadata']['name'] == clusterrolebinding['roleRef']['name']:
-                clusterrolebinding['roleRef']['name'] = f"{clusterrolebinding['roleRef']['name']}-{random_string}"
-
-    for rolebinding in rbac_resources['RoleBinding']:
-        if rolebinding['roleRef']['kind'] == 'Role':
-            for role in rbac_resources['Role']:
-                if (
-                    role['metadata']['name'] == rolebinding['roleRef']['name'] and
-                    role['metadata']['namespace'] == rolebinding['metadata']['namespace']
-                ):
-                    rolebinding['roleRef']['name'] = f"{rolebinding['roleRef']['name']}-{random_string}"
-        elif rolebinding['roleRef']['kind'] == 'ClusterRole':
-            for clusterrole in rbac_resources['ClusterRole']:
-                if clusterrole['metadata']['name'] == rolebinding['roleRef']['name']:
-                    rolebinding['roleRef']['name'] = f"{rolebinding['roleRef']['name']}-{random_string}"
-
-    for role in rbac_resources['ClusterRole'] + rbac_resources['Role']:
+    for kind, role in {**rbac_resources['ClusterRole'], **rbac_resources['Role']}.items():
         # make rolebinding name unique
+        role_name = role['metadata']['name']
+        role_namespace = role['metadata'].get('namespace')
+        role_namespaced_name = f"{role_namespace}/{role_name}"
         role['metadata']['name'] = f"{role['metadata']['name']}-{random_string}"
+        if referenced_roles.get(role_namespaced_name, False) is False:
+            # TODO: throw warning that there's an referenced role
+            pass
 
     for resources in rbac_resources.values():
-        for resource in resources:
+        for resource in resources.values():
             new_manifest_work['spec']['workload']['manifests'].append(resource)
 
     manifest_work_api = hub_client.resources.get(
@@ -265,7 +309,7 @@ def ensure_managed_service_account_rbac(
             content_type="application/merge-patch+json",
         )
 
-    #TODO detect manifestwork failure and report failure
+    # TODO detect manifestwork failure and report failure
     
     return manifest_work
 
