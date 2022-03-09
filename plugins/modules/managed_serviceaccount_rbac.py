@@ -168,14 +168,13 @@ def ensure_managed_service_account_rbac(
     role_subject = {'kind': 'ServiceAccount',
                     'name': managed_service_account.metadata.name,
                     'namespace': managed_service_account_addon.spec.installNamespace}
-    role_names = []
-    filenames = []
 
+    # get the filename for all the rbac files
+    filenames = []
     if not os.path.exists(rbac_template):
         module.fail_json(
             msg=f"error: RBAC template file or directory {rbac_template} does not exists!")
         return None
-
     if os.path.isdir(rbac_template):
         names = next(os.walk(rbac_template), (None, None, []))[2]
         for name in names:
@@ -187,29 +186,60 @@ def ensure_managed_service_account_rbac(
     else:
         filenames.append(rbac_template)
 
+    # gather all the yaml from files
+    yaml_resources = []
     try:
         for filename in filenames:
             with open(filename, 'r') as file:
-                docs = yaml.safe_load_all(file)
-                for doc in docs:
-                    if doc['kind'] in ['Role', 'ClusterRole']:
-                        role_names.append(doc['metadata']['name'])
-                        doc['metadata']['name'] = f"{doc['metadata']['name']}-{random_string}"
-                    elif doc['kind'] in ['RoleBinding', 'ClusterRoleBinding']:
-                        doc['metadata']['name'] = f"{doc['metadata']['name']}-{random_string}"
-                        if doc['roleRef']['name'] in role_names:
-                            doc['roleRef']['name'] = f"{doc['roleRef']['name']}-{random_string}"
-                        if 'subjects' in doc.keys():
-                            doc['subjects'].append(role_subject)
-                        else:
-                            doc['subjects'] = []
-                            doc['subjects'].append(role_subject)
-
-                    new_manifest_work['spec']['workload']['manifests'].append(
-                        doc)
-    except Exception:
+                for resource in yaml.safe_load_all(file):
+                    yaml_resources.append(resource)
+    except Exception as err:
         module.fail_json(
-            msg=f"error: invalid RBAC template file {filename}")
+            msg=f"error: fail to read RBAC template file {filename} {err}")
+
+    # split up the yaml resources base on their type
+    # this will also filter out non RBAC resources
+    rbac_kinds = ['Role', 'ClusterRole', 'RoleBinding', 'ClusterRoleBinding']
+    rbac_resources = dict()
+    for kind in rbac_kinds:
+        rbac_resources[kind] = []
+
+    for resource in yaml_resources:
+        if resource['kind'] in rbac_kinds:
+            rbac_resources[resource['kind']].append(resource)
+
+    # if the clusterrolebinding/rolebinding contains subject
+    # we ignore them because we only allow binding to the managed-serviceaccount
+    for rolebinding in rbac_resources['ClusterRoleBinding'] + rbac_resources['RoleBinding']:
+        # make rolebinding name unique
+        rolebinding['metadata']['name'] = f"{rolebinding['metadata']['name']}-{random_string}"
+        rolebinding['subjects'] = [role_subject]
+
+    for clusterrolebinding in rbac_resources['ClusterRoleBinding']:
+        for clusterrole in rbac_resources['ClusterRole']:
+            if clusterrole['metadata']['name'] == clusterrolebinding['roleRef']['name']:
+                clusterrolebinding['roleRef']['name'] = f"{clusterrolebinding['roleRef']['name']}-{random_string}"
+
+    for rolebinding in rbac_resources['RoleBinding']:
+        if rolebinding['roleRef']['kind'] == 'Role':
+            for role in rbac_resources['Role']:
+                if (
+                    role['metadata']['name'] == rolebinding['roleRef']['name'] and
+                    role['metadata']['namespace'] == rolebinding['metadata']['namespace']
+                ):
+                    rolebinding['roleRef']['name'] = f"{rolebinding['roleRef']['name']}-{random_string}"
+        elif rolebinding['roleRef']['kind'] == 'ClusterRole':
+            for clusterrole in rbac_resources['ClusterRole']:
+                if clusterrole['metadata']['name'] == rolebinding['roleRef']['name']:
+                    rolebinding['roleRef']['name'] = f"{rolebinding['roleRef']['name']}-{random_string}"
+
+    for role in rbac_resources['ClusterRole'] + rbac_resources['Role']:
+        # make rolebinding name unique
+        role['metadata']['name'] = f"{role['metadata']['name']}-{random_string}"
+
+    for resources in rbac_resources.values():
+        for resource in resources:
+            new_manifest_work['spec']['workload']['manifests'].append(resource)
 
     manifest_work_api = hub_client.resources.get(
         api_version='work.open-cluster-management.io/v1',
@@ -234,6 +264,9 @@ def ensure_managed_service_account_rbac(
             body=new_manifest_work,
             content_type="application/merge-patch+json",
         )
+
+    #TODO detect manifestwork failure and report failure
+    
     return manifest_work
 
 

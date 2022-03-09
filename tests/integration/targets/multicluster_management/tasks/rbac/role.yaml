@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: demo-role
+  name: configmap-all
   namespace: default
 rules:
   - apiGroups:
@@ -14,3 +14,16 @@ rules:
       - update
       - patch
       - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-get
+  namespace: default
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pod
+    verbs:
+      - get
