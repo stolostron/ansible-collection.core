@@ -34,10 +34,10 @@ options:
         required: True
     rbac_template:
         description:
-        - Path to the file or directory that contains the role/clusterrrole/rolebinding/clusterrolebinding configuration.
+        - Path to the file or directory that contains the role/clusterrole/rolebinding/clusterrolebinding configuration.
         - The path specified should either be the absolute or relative to the location of the playbook.
-        - In order to avoid potential resource name collision, the name specified in the RBAC files
-          will be appended with the last 12 digit of UID of the target managed-serviceaccount.
+        - In order to avoid potential resource name collision, the last 12 digits of the
+          target managed-serviceaccount UID will be appended to the name specified in the RBAC files."
         type: path
         required: True
     wait:
@@ -72,8 +72,6 @@ result:
 '''
 
 import os
-import string
-import random
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
@@ -118,19 +116,203 @@ spec:
 """
 
 
+def get_rbac_template_filepaths(module, rbac_template_param):
+    # get the filename for all the rbac files
+    try:
+        path_exist = os.path.exists(rbac_template_param)
+    except TypeError:
+        path_exist = False
+
+    filepaths = []
+    if path_exist:
+        if os.path.isdir(rbac_template_param):
+            names = next(os.walk(rbac_template_param), (None, None, []))[2]
+            for name in names:
+                filepaths.append(f"{rbac_template_param}/{name}")
+        else:
+            filepaths.append(rbac_template_param)
+
+    if len(filepaths) == 0:
+        module.fail_json(
+            msg=f"error: RBAC template file or directory not found. rbac_template: {rbac_template_param}"
+        )
+
+    return filepaths
+
+
+def get_yaml_resource_from_files(module, filenames):
+    if not isinstance(filenames, list):
+        filenames = []
+
+    yaml_resources = []
+    for filename in filenames:
+        try:
+            with open(filename, 'r') as file:
+                for resource in yaml.safe_load_all(file):
+                    yaml_resources.append(resource)
+        except Exception as err:
+            module.fail_json(
+                msg=f"error: fail to read RBAC template file {filename} {err}"
+            )
+
+    if len(yaml_resources) == 0:
+        module.fail_json(
+            msg="error: No YAML resource found in RBAC template file or directory. " +
+                f"rbac_template: {module.params['rbac_template']}"
+        )
+
+    return yaml_resources
+
+
+def get_rbac_resource_from_yaml(module, yaml_resources):
+    rbac_resources = {'Role': {}, 'ClusterRole': {}, 'RoleBinding': {}, 'ClusterRoleBinding': {}}
+
+    for resource in yaml_resources:
+        if isinstance(resource, dict):
+            kind = resource.get('kind')
+        else:
+            kind = "UNKNOWN"
+
+        if kind not in rbac_resources.keys():
+            module.warn(
+                "Non-RBAC resource detected, this resource will be ignored. ",
+                f"resource.kind: {kind}, expecting {rbac_resources.keys()}."
+                f"resource: {resource}"
+            )
+            continue
+        else:
+            metadata = resource.get('metadata')
+            if metadata is None:
+                module.warn(
+                    f"missing metadata, this resource will be ignored. resource: {resource}"
+                )
+                continue
+
+            name = metadata.get('name', "")
+            if name == "":
+                module.warn(
+                    f"missing metadata.name, this resource will be ignored. resource: {resource}"
+                )
+                continue
+
+            namespace = metadata.get('namespace', "")
+            if 'Cluster' in kind and namespace != "":
+                module.warn(
+                    f"{kind} should not have metadata.namespace, this resource will be ignored. resource: {resource}"
+                )
+                continue
+
+            if 'Cluster' not in kind and namespace == "":
+                module.warn(
+                    f"metadata.namespace required for {kind}, this resource will be ignored. resource: {resource}"
+                )
+                continue
+
+            if 'RoleBinding' in kind:
+                role_ref = resource.get('roleRef')
+                if role_ref is None:
+                    module.warn(
+                        f"roleRef required for {kind}, this resource will be ignored. resource: {resource}"
+                    )
+                    continue
+                if role_ref.get('kind', "") == "":
+                    module.warn(
+                        f"roleRef.kind required for {kind}, this resource will be ignored. resource: {resource}"
+                    )
+                    continue
+                if role_ref.get('name', "") == "":
+                    module.warn(
+                        f"roleRef.name required for {kind}, this resource will be ignored. resource: {resource}"
+                    )
+                    continue
+
+            namespaced_name = f"{namespace}/{name}"
+            exist = rbac_resources[kind].get(namespaced_name)
+            if exist is not None:
+                module.fail_json(
+                    msg=f"RBAC resource with duplicate name detected. resource: {resource}"
+                )
+
+            rbac_resources[kind][namespaced_name] = resource
+
+    if rbac_resources == {'Role': {}, 'ClusterRole': {}, 'RoleBinding': {}, 'ClusterRoleBinding': {}}:
+        module.fail_json(
+            msg=f"No RBAC resource found in rbac_template. rbac_template: {module.params['rbac_template']}"
+        )
+
+    return rbac_resources
+
+
+def generate_rbac_manifest(module, rbac_resources, postfix, role_subject):
+    # namespaced_named indexed dict to keep track of which roles we used
+    referenced_roles = {}
+    rbac_manifest = []
+
+    for rolebinding in {**rbac_resources['ClusterRoleBinding'], **rbac_resources['RoleBinding']}.values():
+        # rebind subjects
+        if rolebinding.get('subjects') is not None:
+            module.warn(
+                "subjects in ClusterRoleBinding/RoleBinding will be ignored." +
+                f"namespace: {rolebinding['metadata'].get('namespace')}" +
+                f"name: {rolebinding['metadata'].get('name')}"
+            )
+        rolebinding['subjects'] = [role_subject]
+
+        # make rolebinding name unique
+        rolebinding['metadata']['name'] = f"{rolebinding['metadata']['name']}-{postfix}"
+
+        # rename roleRef.name for roles that we are creating
+        role_ref_name = rolebinding['roleRef']['name']
+        role_ref_namespace = rolebinding['metadata'].get('namespace')
+        role_ref_kind = rolebinding['roleRef']['kind']
+        role_ref_namespaced_name = f"{role_ref_namespace}/{role_ref_name}"
+        if rbac_resources.get(role_ref_kind, {}).get(role_ref_namespaced_name) is not None:
+            referenced_roles[role_ref_namespaced_name] = True
+            rolebinding['roleRef']['name'] = f"{rolebinding['roleRef']['name']}-{postfix}"
+
+    for role in {**rbac_resources['ClusterRole'], **rbac_resources['Role']}.values():
+        role_name = role['metadata']['name']
+        role_namespace = role['metadata'].get('namespace')
+        role_namespaced_name = f"{role_namespace}/{role_name}"
+
+        if referenced_roles.get(role_namespaced_name, False) is False:
+            module.warn(
+                "Unreferenced ClusterRole/Role detected. " +
+                f"namespace: {role_namespace}, name: {role_name}"
+            )
+
+        # make rolebinding name unique
+        role['metadata']['name'] = f"{role['metadata']['name']}-{postfix}"
+
+    for resources in rbac_resources.values():
+        for resource in resources.values():
+            rbac_manifest.append(resource)
+
+    if len(rbac_manifest) == 0:
+        module.fail_json(
+            msg=f"No resource generated from rbac_template: {module.params['rbac_template']}"
+        )
+
+    return rbac_manifest
+
+
 def ensure_managed_service_account_rbac(
         module: AnsibleModule,
         hub_client,
         managed_cluster_name,
         managed_serviceaccount_name,
-        rbac_template
 ):
     if 'jinja2' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('jinja2'),
-                         exception=IMP_ERR['jinja2']['exception'])
+        module.fail_json(
+            msg=missing_required_lib('jinja2'),
+            exception=IMP_ERR['jinja2']['exception']
+        )
+
     if 'yaml' in IMP_ERR:
-        module.fail_json(msg=missing_required_lib('yaml'),
-                         exception=IMP_ERR['yaml']['exception'])
+        module.fail_json(
+            msg=missing_required_lib('yaml'),
+            exception=IMP_ERR['yaml']['exception']
+        )
 
     managed_service_account_api = hub_client.resources.get(
         api_version='authentication.open-cluster-management.io/v1alpha1',
@@ -144,16 +326,17 @@ def ensure_managed_service_account_rbac(
 
     if managed_service_account is None:
         module.fail_json(
-            msg=f"failed to get managed serviceaccount {managed_serviceaccount_name}")
+            msg=f"failed to get managed serviceaccount {managed_serviceaccount_name}"
+        )
 
     managed_service_account_addon = get_managed_cluster_addon(
-        hub_client, managed_cluster_name, 'managed-serviceaccount')
+        hub_client, managed_cluster_name, 'managed-serviceaccount'
+    )
 
     if managed_service_account_addon is None:
         module.fail_json(
-            msg="failed to get managed serviceaccount addon managed-serviceaccount")
-
-    random_string = managed_service_account.metadata.uid.split('-')[-1]
+            msg="failed to get managed serviceaccount addon managed-serviceaccount"
+        )
 
     new_manifest_work_raw = Template(MANIFEST_WORK_TEMPLATE).render(
         cluster_name=managed_cluster_name,
@@ -165,58 +348,31 @@ def ensure_managed_service_account_rbac(
 
     new_manifest_work = yaml.safe_load(new_manifest_work_raw)
 
-    role_subject = {'kind': 'ServiceAccount',
-                    'name': managed_service_account.metadata.name,
-                    'namespace': managed_service_account_addon.spec.installNamespace}
-    role_names = []
-    filenames = []
+    # get the filename for all the rbac files
+    filenames = get_rbac_template_filepaths(module, module.params['rbac_template'])
 
-    if not os.path.exists(rbac_template):
-        module.fail_json(
-            msg=f"error: RBAC template file or directory {rbac_template} does not exists!")
-        return None
+    # gather all the yaml from files
+    yaml_resources = get_yaml_resource_from_files(module, filenames)
 
-    if os.path.isdir(rbac_template):
-        names = next(os.walk(rbac_template), (None, None, []))[2]
-        for name in names:
-            filenames.append(f"{rbac_template}/{name}")
-        if len(filenames) == 0:
-            module.fail_json(
-                msg=f"error: RBAC template directory {rbac_template} is empty!")
-            return None
-    else:
-        filenames.append(rbac_template)
+    # gather all the rbac resource from yaml
+    rbac_resources = get_rbac_resource_from_yaml(module, yaml_resources)
 
-    try:
-        for filename in filenames:
-            with open(filename, 'r') as file:
-                docs = yaml.safe_load_all(file)
-                for doc in docs:
-                    if doc['kind'] in ['Role', 'ClusterRole']:
-                        role_names.append(doc['metadata']['name'])
-                        doc['metadata']['name'] = f"{doc['metadata']['name']}-{random_string}"
-                    elif doc['kind'] in ['RoleBinding', 'ClusterRoleBinding']:
-                        doc['metadata']['name'] = f"{doc['metadata']['name']}-{random_string}"
-                        if doc['roleRef']['name'] in role_names:
-                            doc['roleRef']['name'] = f"{doc['roleRef']['name']}-{random_string}"
-                        if 'subjects' in doc.keys():
-                            doc['subjects'].append(role_subject)
-                        else:
-                            doc['subjects'] = []
-                            doc['subjects'].append(role_subject)
+    # generate rbac manifest for manifest_work
+    postfix = managed_service_account.metadata.uid.split('-')[-1]
+    role_subject = {
+        'kind': 'ServiceAccount',
+        'name': managed_service_account.metadata.name,
+        'namespace': managed_service_account_addon.spec.installNamespace
+    }
+    rbac_manifests = generate_rbac_manifest(module, rbac_resources, postfix, role_subject)
 
-                    new_manifest_work['spec']['workload']['manifests'].append(
-                        doc)
-    except Exception:
-        module.fail_json(
-            msg=f"error: invalid RBAC template file {filename}")
+    new_manifest_work['spec']['workload']['manifests'] = rbac_manifests
 
     manifest_work_api = hub_client.resources.get(
         api_version='work.open-cluster-management.io/v1',
         kind='ManifestWork',
     )
 
-    manifest_work = None
     try:
         manifest_work = manifest_work_api.get(
             namespace=managed_cluster_name,
@@ -234,6 +390,9 @@ def ensure_managed_service_account_rbac(
             body=new_manifest_work,
             content_type="application/merge-patch+json",
         )
+
+    # TODO detect manifestwork failure and report failure
+
     return manifest_work
 
 
@@ -280,7 +439,7 @@ def execute_module(module: AnsibleModule):
             msg=f"failed to get managedcluster {managed_cluster_name}")
 
     manifest_work = ensure_managed_service_account_rbac(
-        module, hub_client, managed_cluster_name, managed_serviceaccount_name, rbac_template)
+        module, hub_client, managed_cluster_name, managed_serviceaccount_name)
 
     if wait:
         wait_for_manifestwork_available(
