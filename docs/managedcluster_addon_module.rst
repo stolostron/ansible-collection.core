@@ -228,21 +228,6 @@ Common return values are documented :ref:`here <common_return_values>`, the foll
         </tr>
                     <tr>
                                 <td colspan="1">
-                    <div class="ansibleOptionAnchor" id="return-err"></div>
-                    <b>err</b>
-                    <a class="ansibleOptionLink" href="#return-err" title="Permalink to this return value"></a>
-                    <div style="font-size: small">
-                      <span style="color: purple">string</span>
-                                          </div>
-                                    </td>
-                <td>when there&#x27;s an error</td>
-                <td>
-                                            <div>Error message</div>
-                                        <br/>
-                                    </td>
-            </tr>
-                                <tr>
-                                <td colspan="1">
                     <div class="ansibleOptionAnchor" id="return-result"></div>
                     <b>result</b>
                     <a class="ansibleOptionLink" href="#return-result" title="Permalink to this return value"></a>

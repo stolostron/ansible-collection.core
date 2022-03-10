@@ -65,6 +65,24 @@ Parameters
         </tr>
                     <tr>
                                                                 <td colspan="1">
+                    <div class="ansibleOptionAnchor" id="parameter-generate_name"></div>
+                    <b>generate_name</b>
+                    <a class="ansibleOptionLink" href="#parameter-generate_name" title="Permalink to this option"></a>
+                    <div style="font-size: small">
+                        <span style="color: purple">string</span>
+                                                                    </div>
+                                                        </td>
+                                <td>
+                                                                                                                                                            </td>
+                                                                <td>
+                                            <div>This field is a prefix used to generate a unique name if the name field has not been provided.</div>
+                                            <div>If this field is used the value will be combined with a unique suffix.</div>
+                                            <div>The provided value has the same validation rules as the name field and may truncate by the length of the suffix required to make the value unique.</div>
+                                            <div>Consider using this field with ttl_seconds_after_creation to avoid accumulation of managed-serviceaccount objects.</div>
+                                                        </td>
+            </tr>
+                                <tr>
+                                                                <td colspan="1">
                     <div class="ansibleOptionAnchor" id="parameter-hub_kubeconfig"></div>
                     <b>hub_kubeconfig</b>
                     <a class="ansibleOptionLink" href="#parameter-hub_kubeconfig" title="Permalink to this option"></a>
@@ -105,8 +123,11 @@ Parameters
                                 <td>
                                                                                                                                                             </td>
                                                                 <td>
-                                            <div>Name of managed-serviceaccount.</div>
-                                            <div>Required only if <code>state=absent</code></div>
+                                            <div>This field specify the name of managed-serviceaccount.</div>
+                                            <div>The name must be unique for a specific managed-cluster.</div>
+                                            <div>Use this field for persistent and long lived managed-serviceaccount.</div>
+                                            <div>Consider using generate_name if the managed-serviceaccount is temporary to avoid collision between playbooks.</div>
+                                            <div>Required if <code>state=absent</code></div>
                                                         </td>
             </tr>
                                 <tr>
@@ -156,7 +177,7 @@ Parameters
                                 <td>
                                                                                                                                                             </td>
                                                                 <td>
-                                            <div>The lifetime of a ManagedServiceAccount in seconds. If set, the ManagedServiceAccount will be automatically deleted. If this field is unset, the ManagedServiceAccount won&#x27;t be automatically deleted. If this field is set to zero, the ManagedServiceAccount becomes eligible to be deleted immediately after it creation.</div>
+                                            <div>The lifetime of a ManagedServiceAccount in seconds. If set, the ManagedServiceAccount will be automatically deleted. If this field is unset, the ManagedServiceAccount won&#x27;t be automatically deleted. If this field is set to zero, the ManagedServiceAccount will be deleted immediately after it creation.</div>
                                                         </td>
             </tr>
                                 <tr>
