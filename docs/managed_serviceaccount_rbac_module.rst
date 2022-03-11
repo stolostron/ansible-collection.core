@@ -120,9 +120,9 @@ Parameters
                                 <td>
                                                                                                                                                             </td>
                                                                 <td>
-                                            <div>Path to the file or directory that contains the role/clusterrrole/rolebinding/clusterrolebinding configuration.</div>
+                                            <div>Path to the file or directory that contains the role/clusterrole/rolebinding/clusterrolebinding configuration.</div>
                                             <div>The path specified should either be the absolute or relative to the location of the playbook.</div>
-                                            <div>In order to avoid potential resource name collision, the name specified in the RBAC files will be appended with the last 12 digit of UID of the target managed-serviceaccount.</div>
+                                            <div>In order to avoid potential resource name collision, the last 12 digits of the target managed-serviceaccount UID will be appended to the name specified in the RBAC files.&quot;</div>
                                                         </td>
             </tr>
                                 <tr>
