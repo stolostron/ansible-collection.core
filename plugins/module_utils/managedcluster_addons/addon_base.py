@@ -95,6 +95,9 @@ class addon_base():
                 msg=f'failed to check feature: {addon_name} of ClusterManagementAddOn is not enabled')
 
     def enable_managed_cluster_addon(self, module: AnsibleModule, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
+        if self.check_addon_available(hub_client, managed_cluster_name, addon_name):
+            return module.exit_json(
+                changed=False, result=f'addon: {addon_name} is already enabled in {managed_cluster_name}')
         self.ensure_managed_cluster_addon_enabled(
             module, hub_client, addon_name, managed_cluster_name)
 
@@ -144,8 +147,7 @@ class addon_base():
                 name=addon_name,
                 namespace=managed_cluster_name,
             )
-            return module.exit_json(
-                changed=False, result=f'addon: {addon_name} is already enabled in {managed_cluster_name}')
+            return addon
         except NotFoundError:
             if 'jinja2' in IMP_ERR:
                 module.fail_json(msg=missing_required_lib(

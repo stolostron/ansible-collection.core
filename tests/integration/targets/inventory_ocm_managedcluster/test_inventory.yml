@@ -1,0 +1,28 @@
+- name: "testing inventory plugin"
+  hosts: localhost
+  connection: local
+  tasks:
+  - name: set all needed variables
+    set_fact:
+      test_local_cluster_kubeconfig_path: "{{ hostvars['local-cluster'].kubeconfig }}"
+      test_hub_cluster_kubeconfig_path: "{{ hostvars[groups['hub'][0]].kubeconfig }}"
+      test_test_cluster_name: "{{ hostvars[groups['test-cluster'][0]].cluster_name }}"
+
+  - name: "make sure there is a hub group, and has hub_kubeconfig passed to local-cluster"
+    assert:
+      that:
+      - "{{ groups['hub'] | length }} == 1 "
+      - "'{{ test_local_cluster_kubeconfig_path }}' == '{{hub_kubeconfig}}'"
+      - "'{{ test_hub_cluster_kubeconfig_path }}' == '{{hub_kubeconfig}}'"
+  - name: "group other_clusters should have at least 1 clusters"
+    assert:
+      that: 
+      - "{{ groups['other-clusters'] | length }} >= 1 "
+  - name: "group test_cluster should have only 1 cluster"
+    assert:
+      that: 
+      - "{{ groups['test-cluster'] | length }} == 1 "
+  - name: "the test cluster should have cluster_name set"
+    assert:
+      that: 
+      - "'{{ test_test_cluster_name }}' == '{{ managedcluster_name }}' "

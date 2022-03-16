@@ -1,7 +1,0 @@
-plugin: ocmplus.cm.ocm_managedcluster
-hub_kubeconfig: <path-to-your-hub-kubeconfig>
-cluster_groups:
-  - name: ocp-clusters
-    label_selectors:
-      - vendor=OpenShift
-      - name!=local-cluster
