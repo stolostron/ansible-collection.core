@@ -6,6 +6,13 @@ from ansible.module_utils.basic import AnsibleModule
 from .addon_base import addon_base
 import traceback
 from ansible.module_utils.basic import AnsibleModule, missing_required_lib
+from ansible_collections.ocmplus.cm.plugins.module_utils.installer_utils import (
+    get_multi_cluster_hub,
+    get_multi_cluster_engine,
+    get_component_status,
+    set_component_status
+)
+
 IMP_ERR = {}
 try:
     from kubernetes.dynamic.exceptions import NotFoundError, DynamicApiError
@@ -22,6 +29,7 @@ class managed_serviceaccount(addon_base):
         if 'k8s' in IMP_ERR:
             module.fail_json(msg=missing_required_lib('kubernetes'),
                              exception=IMP_ERR['k8s']['exception'])
+        self.component_name = 'managed-service-account'
 
     def check_feature(self):
         self.check_cluster_management_addon_feature(
@@ -51,16 +59,18 @@ class managed_serviceaccount(addon_base):
         )
 
     def enable_feature(self):
-        mch = self.get_multi_cluster_hub(ignore_not_found=True)
         changed = False
-        if mch is None:
-            mce = self.get_multi_cluster_engine()
-            if not self.get_feature_enablement(mce):
-                # need to update mch
-                self.update_multi_cluster_engine_feature(mce, True)
-                changed = True
-        else:
-            if not self.get_feature_enablement(mch):
+        mce = get_multi_cluster_engine(
+            self.hub_client, self.module).to_dict()
+        if not get_component_status(mce, self.module, self.component_name):
+            # need to update mch
+            self.update_multi_cluster_engine_feature(mce, True)
+            changed = True
+        mch = get_multi_cluster_hub(
+            hub_client=self.hub_client, module=self.module, ignore_not_found=True)
+        if mch is not None:
+            mch = mch.to_dict()
+            if not get_component_status(mch, self.module, self.component_name):
                 # need to update mch
                 self.update_multi_cluster_hub_feature(mch, True)
                 changed = True
@@ -81,18 +91,22 @@ class managed_serviceaccount(addon_base):
         return changed
 
     def disable_feature(self):
-        mch = self.get_multi_cluster_hub(ignore_not_found=True)
         changed = False
-        if mch is None:
-            mce = self.get_multi_cluster_engine()
-            if self.get_feature_enablement(mce):
-                changed = True
-                self.update_multi_cluster_engine_feature(mce, False)
-        else:
-            if self.get_feature_enablement(mch):
+        mce = get_multi_cluster_engine(
+            self.hub_client, self.module).to_dict()
+        if get_component_status(mce, self.module, self.component_name):
+            changed = True
+            self.update_multi_cluster_engine_feature(mce, False)
+
+        mch = get_multi_cluster_hub(
+            hub_client=self.hub_client, module=self.module, ignore_not_found=True)
+        if mch is not None:
+            mch = mch.to_dict()
+            if get_component_status(mch, self.module, self.component_name):
                 # need to update mch
                 changed = True
                 self.update_multi_cluster_hub_feature(mch, False)
+
         return changed
 
     def update_multi_cluster_engine_feature(self, mce, state=False):
@@ -100,23 +114,13 @@ class managed_serviceaccount(addon_base):
             api_version="multicluster.openshift.io/v1",
             kind="MultiClusterEngine",
         )
-        patch_body = {
-            "apiVersion": "multicluster.openshift.io/v1",
-            "kind": "MultiClusterEngine",
-            "metadata": {
-                "name": mce.metadata.name,
-            },
-            "spec": {
-                "componentConfig": {
-                    "managedServiceAccount": {
-                        "enable": state,
-                    },
-                },
-            },
-        }
+        set_component_status(mce, self.module, self.component_name, state)
         try:
-            mce_api.patch(body=patch_body,
-                          content_type="application/merge-patch+json")
+            mce_api.patch(
+                name=mce.get('metadata', {}).get('name'),
+                namespace=mce.get('metadata', {}).get('namespace'),
+                body=mce,
+                content_type="application/merge-patch+json")
         except DynamicApiError as e:
             self.module.fail_json(
                 msg=f'failed to patch MultiClusterHub {mce.metadata.name}.', err=e)
@@ -126,24 +130,13 @@ class managed_serviceaccount(addon_base):
             api_version="operator.open-cluster-management.io/v1",
             kind="MultiClusterHub",
         )
-        patch_body = {
-            "apiVersion": "operator.open-cluster-management.io/v1",
-            "kind": "MultiClusterHub",
-            "metadata": {
-                "name": mch.metadata.name,
-                "namespace": mch.metadata.namespace,
-            },
-            "spec": {
-                "componentConfig": {
-                    "managedServiceAccount": {
-                        "enable": state,
-                    },
-                },
-            },
-        }
+        set_component_status(mch, self.module, self.component_name, state)
         try:
-            mch_api.patch(body=patch_body,
-                          content_type="application/merge-patch+json")
+            mch_api.patch(
+                name=mch.get('metadata', {}).get('name'),
+                namespace=mch.get('metadata', {}).get('namespace'),
+                body=mch,
+                content_type="application/merge-patch+json")
         except DynamicApiError as e:
             self.module.fail_json(
                 msg=f'failed to patch MultiClusterHub {mch.metadata.name} in {mch.metadata.namespace} namespace.', err=e)
