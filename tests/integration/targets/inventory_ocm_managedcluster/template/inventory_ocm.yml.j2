@@ -1,0 +1,9 @@
+plugin: ocmplus.cm.ocm_managedcluster
+hub_kubeconfig: {{ hub_kubeconfig }}
+cluster_groups:
+- name: other-clusters
+  label_selectors:
+  - name!=local-cluster
+- name: test-cluster
+  label_selectors:
+  - name={{ managedcluster_name }}

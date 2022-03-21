@@ -133,3 +133,7 @@ dmypy.json
 
 # pycharm
 .idea/
+
+# test files
+args.json
+tests/integration/integration_config.yml

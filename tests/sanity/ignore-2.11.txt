@@ -106,7 +106,7 @@ plugins/inventory/ocm_managedcluster.py import-3.5 # Python 3.5 is not supported
 tests/unit/plugins/modules/test_managed_serviceaccount_rbac.py compile-2.6!skip # Python 2.x is not supported
 tests/unit/plugins/modules/test_managed_serviceaccount_rbac.py compile-2.7!skip # Python 2.x is not supported
 tests/unit/plugins/modules/test_managed_serviceaccount_rbac.py compile-3.5!skip # Python 3.5 is not supported
-tests/integration/targets/multicluster_management/tasks/rbac/role.yaml yamllint:unparsable-with-libyaml
-tests/integration/targets/multicluster_management/tasks/rbac/rolebinding.yaml yamllint:unparsable-with-libyaml
+tests/integration/targets/multicluster_management/files/rbac/role.yaml yamllint:unparsable-with-libyaml
+tests/integration/targets/multicluster_management/files/rbac/rolebinding.yaml yamllint:unparsable-with-libyaml
 tests/unit/plugins/modules/fixtures/rbac_template/bad_rbac.yml yamllint:unparsable-with-libyaml
 tests/unit/plugins/modules/fixtures/rbac_template/five_object_file.yml yamllint:unparsable-with-libyaml
