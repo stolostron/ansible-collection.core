@@ -1,43 +1,39 @@
-# Open Cluster Management Ansible Collection
+<!-- Taking from community.general and community.kubernetes -->
+# Name of Collection
 
-An Ansible Collection that allows you to interact with OCM/ACM to provision and manage your Hybrid Cloud presence from the command line.
+BLURB
+<!-- Nothing past the blurb is shown without opening full README -->
 
-## Plugins
+## Ansible version compatibility
 
-Dynamic Inventory for RHACM (pending)
+Tested with stable versions of Ansible 2.10, Ansible 2.11, and Ansible 2.12. Ansible versions before 2.10 are not supported.
 
-## Roles
+## Python support
 
-[ocm_install_core](roles/ocm_install_core/README.md)
+Tested with Python 3.6, Python 3.7, Python 3.8, and Python 3.9. Python versions before 3.6 are not supported.
 
-[ocm_install_observability](roles/ocm_install_observability/README.md)
+## Included content
 
-ocm-uninstall (pending)
+<!-- Looks like RST here -->
+<!-- Instead of this, Ansible references Content tab (which does seem pretty clean) -->
 
-[ocm_attach](roles/ocm_attach/README.md)
+## Installation and Usage
 
-ocm_detach (pending)
+## Testing and Development
 
-## Modules
+## Contributing to this collection
 
-[ocmplus.cm.import_eks](plugins/modules/import_eks.py)
+## Publishing a new version
 
-## Tests
+## Release Notes
 
-### Sanity Test
+<!-- We should include a changelog -->
 
-Running sanity test:
+## More information
 
-    $ ansible-test sanity
+<!-- Community links -->
+## License
 
-### Integration Test
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
-[Integration test for `ocmplus.cm.import_eks`](tests/integration/targets/import_eks/README.md)
-
-## Disclaimer
-
-This Ansible Collection is still in development but aims to expose OCM/ACM's functionality through a useful and simple Ansible Collection.  Some features may not be prsent, may be fully implemented, and may be buggy.  
-
-## Contributing
-
-See our [Contributing Document](CONTRIBUTING.md) for more information.  
+http://www.apache.org/licenses/LICENSE-2.0
