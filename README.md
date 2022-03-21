@@ -36,8 +36,10 @@ Running sanity test:
 
 ## Disclaimer
 
-This Ansible Collection is still in development but aims to expose OCM/ACM's functionality through a useful and simple Ansible Collection.  Some features may not be prsent, may be fully implemented, and may be buggy.  
+This Ansible Collection is still in development but aims to expose OCM/ACM's functionality through a useful and simple Ansible Collection. Some features may not be prsent, may be fully implemented, and may be buggy.
 
 ## Contributing
 
-See our [Contributing Document](CONTRIBUTING.md) for more information.  
+See our [Contributing Document](CONTRIBUTING.md) for more information.
+
+this is a test
