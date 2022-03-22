@@ -113,6 +113,8 @@ def execute_module(module: AnsibleModule):
     new_addon = globals()[new_addon_name](module, hub_client,
                                           '', addon_name, wait, timeout)
     changed = False
+    # check if this action is supported before doing any actions
+    new_addon.check_cluster_version()
     if enabled:
         changed = new_addon.enable_feature()
     else:

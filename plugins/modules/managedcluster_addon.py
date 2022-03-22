@@ -140,6 +140,7 @@ def execute_module(module: AnsibleModule):
     new_addon_name = addon_name.replace('-', '_')
     new_addon = globals()[new_addon_name](
         module, hub_client, managed_cluster_name, addon_name, wait, timeout)
+    new_addon.check_cluster_version()
     if enabled:
         new_addon.check_feature()
         new_addon.enable_addon()

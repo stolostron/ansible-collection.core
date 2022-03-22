@@ -10,7 +10,8 @@ from ansible_collections.ocmplus.cm.plugins.module_utils.installer_utils import 
     get_multi_cluster_hub,
     get_multi_cluster_engine,
     get_component_status,
-    set_component_status
+    set_component_status,
+    check_mce_version,
 )
 
 IMP_ERR = {}
@@ -30,6 +31,9 @@ class managed_serviceaccount(addon_base):
             module.fail_json(msg=missing_required_lib('kubernetes'),
                              exception=IMP_ERR['k8s']['exception'])
         self.component_name = 'managed-service-account'
+
+    def check_cluster_version(self):
+        check_mce_version(self.hub_client, self.module, '2.0.0')
 
     def check_feature(self):
         self.check_cluster_management_addon_feature(
@@ -140,15 +144,3 @@ class managed_serviceaccount(addon_base):
         except DynamicApiError as e:
             self.module.fail_json(
                 msg=f'failed to patch MultiClusterHub {mch.metadata.name} in {mch.metadata.namespace} namespace.', err=e)
-
-    # get_feature_enablement gets enablement of managedserviceaccount from a MultiClusterHub CR or a MultiClusterEngine CR
-    def get_feature_enablement(self, mch):
-        mch_feature_path = ['spec', 'componentConfig',
-                            'managedServiceAccount', 'enable']
-        curr = mch
-        for p in mch_feature_path[:-1]:
-            next = curr.get(p)
-            if next is None:
-                return False
-            curr = next
-        return curr.get(mch_feature_path[-1]) is True

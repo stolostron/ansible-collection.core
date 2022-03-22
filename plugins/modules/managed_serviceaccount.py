@@ -119,7 +119,9 @@ import traceback
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
 from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import check_addon_available
-
+from ansible_collections.ocmplus.cm.plugins.module_utils.installer_utils import (
+    check_mce_version
+)
 IMP_ERR = {}
 try:
     import yaml
@@ -220,11 +222,14 @@ def ensure_managed_serviceaccount(module: AnsibleModule, hub_client, managed_clu
             module.params['name'],
         )
 
-    new_managed_serviceaccount_raw = Template(MANAGED_SERVICEACCOUNT_TEMPLATE).render(module.params)
-    managed_serviceaccount_yaml = yaml.safe_load(new_managed_serviceaccount_raw)
+    new_managed_serviceaccount_raw = Template(
+        MANAGED_SERVICEACCOUNT_TEMPLATE).render(module.params)
+    managed_serviceaccount_yaml = yaml.safe_load(
+        new_managed_serviceaccount_raw)
 
     if managed_serviceaccount is None:
-        managed_serviceaccount = managed_serviceaccount_api.create(managed_serviceaccount_yaml)
+        managed_serviceaccount = managed_serviceaccount_api.create(
+            managed_serviceaccount_yaml)
     else:
         managed_serviceaccount = managed_serviceaccount_api.patch(
             name=module.params['name'],
@@ -279,6 +284,8 @@ def execute_module(module: AnsibleModule):
     hub_client = kubernetes.dynamic.DynamicClient(
         kubernetes.client.api_client.ApiClient(configuration=hub_kubeconfig)
     )
+    # make sure version is correct
+    check_mce_version(hub_client, module, '2.0.0')
     wait = module.params['wait']
     timeout = module.params['timeout']
     ttl_seconds = module.params['ttl_seconds_after_creation']

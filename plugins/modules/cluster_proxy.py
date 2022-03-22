@@ -66,7 +66,9 @@ import traceback
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
 from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import check_addon_available
-
+from ansible_collections.ocmplus.cm.plugins.module_utils.installer_utils import (
+    check_mch_version
+)
 IMP_ERR = {}
 try:
     from kubernetes.dynamic.exceptions import NotFoundError
@@ -141,6 +143,8 @@ def execute_module(module: AnsibleModule):
     hub_client = kubernetes.dynamic.DynamicClient(
         kubernetes.client.api_client.ApiClient(configuration=hub_kubeconfig)
     )
+    # make sure version is correct
+    check_mch_version(hub_client, module, '2.5.0')
 
     wait = module.params['wait']
     timeout = module.params['timeout']
