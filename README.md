@@ -19,8 +19,8 @@ Tested with Python 3.6, Python 3.7, Python 3.8, and Python 3.9. Python versions 
 
 ## Included content
 
-<!-- Looks like RST here -->
-<!-- Instead of this, Ansible references Content tab (which does seem pretty clean) -->
+<!--start collection content-->
+<!--end collection content-->
 
 ## Installation and Usage
 

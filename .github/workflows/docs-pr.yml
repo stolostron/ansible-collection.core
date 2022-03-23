@@ -46,6 +46,12 @@ jobs:
       - name: Move rst files
         run: tree docs-build && cp -f docs-build/temp-rst/* docs/ && tree docs && git status
 
+      - name: Build README.md
+        run: python3 ./docs-build/build-readme.py --docs-dir docs --url-base https://github.com/stolostron/ocmplus.cm/blob/main/ --readme-path README.md
+
+      - name: Check status
+        run: git status
+
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@v3
