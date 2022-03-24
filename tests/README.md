@@ -11,16 +11,16 @@
 
 Run the following command:
 
-```
-ansible-test sanity --docker
+```bash
+make test-sanity
 ```
 
 ## Unit
 
 Run the following command:
 
-```
-ansible-test units --docker --python 3.6
+```bash
+make test-unit
 ```
 
 ## Integration
