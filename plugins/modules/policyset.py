@@ -39,7 +39,7 @@ options:
     description:
         description: The description of the policySet
         type: str
-        required: True
+        required: False
     namespace:
         description: The name of the namespace.  All resources will be created in this namespace.
         type: str
@@ -222,25 +222,25 @@ def render_policy(
             'disabled': False,
             'policy-templates': [
                 {'objectDefinition': {
-                        'apiVersion': 'policy.open-cluster-management.io/v1',
-                        'kind': 'ConfigurationPolicy',
-                        'metadata': {
+                    'apiVersion': 'policy.open-cluster-management.io/v1',
+                    'kind': 'ConfigurationPolicy',
+                    'metadata': {
                             'name': name
+                    },
+                    'spec': {
+                        'remediationAction': remediation_action,
+                        'severity': severity,
+                        'namespaceSelector': {
+                            'exclude': [
+                                'kube-*'
+                            ],
+                            'include': [
+                                namespace
+                            ]
                         },
-                        'spec': {
-                            'remediationAction': remediation_action,
-                            'severity': severity,
-                            'namespaceSelector': {
-                                'exclude': [
-                                    'kube-*'
-                                ],
-                                'include': [
-                                    namespace
-                                ]
-                            },
-                            'object-templates': object_templates
-                        }
+                        'object-templates': object_templates
                     }
+                }
                 }
             ]
         }
@@ -255,7 +255,8 @@ def get_filepath(module: AnsibleModule, policyset_name, manifest_dir):
             msg=f'Error accessing {manifest_dir}. Does the directory exist?')
 
     remediation_actions = {'inform': 'inform', 'enforce': 'enforce'}
-    compliance_types = {'musthave': 'musthave',  'mustonlyhave': 'mustonlyhave', 'mustnothave': 'mustnothave'}
+    compliance_types = {'musthave': 'musthave',
+                        'mustonlyhave': 'mustonlyhave', 'mustnothave': 'mustnothave'}
     filenames = []
     filepaths = []
     maxlen = 253
@@ -273,7 +274,7 @@ def get_filepath(module: AnsibleModule, policyset_name, manifest_dir):
                         # get filename from last '/'
                         filename = filename.rsplit('/', 1)[-1]
                         # remove special characters
-                        filename = re.sub('[^A-Za-z0-9\-]+', '', filename)
+                        filename = re.sub('[^A-Za-z0-9-]+', '', filename)
                         # check if filename is already being used
                         if filename in filenames:
                             module.fail_json(
@@ -285,7 +286,8 @@ def get_filepath(module: AnsibleModule, policyset_name, manifest_dir):
                                 msg=f'Filename: {filename} can contain at most {maxlen - len(policyset_name) - 1} characters'
                             )
                         filenames.append(filename)
-                        item = {'filename': filename ,'remediation_action': remediation_action, 'compliance_type': compliance_type, 'filepath': filepath}
+                        item = {'filename': filename, 'remediation_action': remediation_action,
+                                'compliance_type': compliance_type, 'filepath': filepath}
                         # append to the list
                         filepaths.append(item)
 
@@ -310,10 +312,11 @@ def get_policy_attributes(filepath):
                     if line.find(attribute) != -1:
                         x = ''
                         if line.find('=') != -1:
-                            x = line[line.find('=')+1:]
+                            x = line[line.find('=') + 1:]
                         elif line.find(':') != -1:
-                            x = line[line.find(':')+1:]
-                        policy_attributes[attribute] = x.replace("'", "").replace('"', '').strip()
+                            x = line[line.find(':') + 1:]
+                        policy_attributes[attribute] = x.replace(
+                            "'", "").replace('"', '').strip()
 
     return policy_attributes
 
@@ -324,7 +327,8 @@ def generate_object_templates(module: AnsibleModule, compliance_type, filepath):
         with open(filepath, 'r') as file:
             docs = yaml.safe_load_all(file)
             for doc in docs:
-                object_templates.append({"complianceType": compliance_type, "objectDefinition": doc})
+                object_templates.append(
+                    {"complianceType": compliance_type, "objectDefinition": doc})
     except Exception as e:
         module.fail_json(
             msg=f"Error loading resourc file {filepath}", err=e)
@@ -346,14 +350,17 @@ def ensure_policy(
         kind='Policy',
     )
     filepath = os.path.realpath(filepath)
-    object_templates = generate_object_templates(module, compliance_type, filepath)
+    object_templates = generate_object_templates(
+        module, compliance_type, filepath)
     if object_templates:
         try:
-            object_templates = sorted(object_templates, key=lambda s: (s['objectDefinition']['metadata']['name']))
+            object_templates = sorted(object_templates, key=lambda s: (
+                s['objectDefinition']['metadata']['name']))
         except KeyError:
             pass
     policy_attributes = get_policy_attributes(filepath)
-    severities = ['low', 'Low', 'medium', 'Medium', 'high', 'High', 'critical', 'Critical']
+    severities = ['low', 'Low', 'medium', 'Medium',
+                  'high', 'High', 'critical', 'Critical']
     if not (policy_attributes['policy_severity'] and policy_attributes['policy_severity'] in severities):
         policy_attributes['policy_severity'] = 'low'
     try:
@@ -362,15 +369,15 @@ def ensure_policy(
         # check if Policy needs update
         update_required = False
         patch_body = render_policy(
-                        name,
-                        namespace,
-                        policy_attributes['policy_categories'],
-                        policy_attributes['policy_controls'],
-                        policy_attributes['policy_standards'],
-                        remediation_action,
-                        policy_attributes['policy_severity'],
-                        object_templates
-                      )
+            name,
+            namespace,
+            policy_attributes['policy_categories'],
+            policy_attributes['policy_controls'],
+            policy_attributes['policy_standards'],
+            remediation_action,
+            policy_attributes['policy_severity'],
+            object_templates
+        )
         diff = recursive_diff(policy, patch_body)
         if diff and len(diff) > 1 and diff[1]:
             if diff[1].get('metadata') or diff[1].get('spec'):
@@ -390,15 +397,15 @@ def ensure_policy(
                         msg=f'Failed to patch Policy: {name} namespace: {namespace}.', err=e)
     except NotFoundError:
         policy_yaml = render_policy(
-                        name,
-                        namespace,
-                        policy_attributes['policy_categories'],
-                        policy_attributes['policy_controls'],
-                        policy_attributes['policy_standards'],
-                        remediation_action,
-                        policy_attributes['policy_severity'],
-                        object_templates
-                      )
+            name,
+            namespace,
+            policy_attributes['policy_categories'],
+            policy_attributes['policy_controls'],
+            policy_attributes['policy_standards'],
+            remediation_action,
+            policy_attributes['policy_severity'],
+            object_templates
+        )
         policy = policy_api.create(policy_yaml)
 
     return policy
@@ -416,13 +423,14 @@ def generate_expression(cluster_selectors):
             if len(x) == 2:
                 values = x[1].split(",")
                 values = list(map(str.strip, values))
-                expression = {'key': x[0].strip(), 'operator': value, 'values': values}
+                expression = {
+                    'key': x[0].strip(), 'operator': value, 'values': values}
                 break
             else:
                 expression = {'key': selector.strip(), 'operator': 'Exists'}
         expressions.append(expression)
 
-    return expressions 
+    return expressions
 
 
 class Policy(Thread):
@@ -447,14 +455,14 @@ class Policy(Thread):
             item = self.in_queue.get()
             try:
                 policy = ensure_policy(
-                            self.module,
-                            self.hub_client,
-                            item['policy_name'],
-                            self.namespace,
-                            item['remediation_action'],
-                            item['compliance_type'],
-                            item['filepath']
-                        )
+                    self.module,
+                    self.hub_client,
+                    item['policy_name'],
+                    self.namespace,
+                    item['remediation_action'],
+                    item['compliance_type'],
+                    item['filepath']
+                )
 
                 self.out_queue.put(policy['metadata']['name'])
             except Exception as e:
@@ -479,15 +487,15 @@ def ensure_all_policies(
     # Spawn a pool of threads, and pass them queue instance
     for i in range(max_policy_worker_threads):
         t = Policy(
-                in_queue,
-                out_queue,
-                module,
-                hub_client,
-                namespace
-            )
+            in_queue,
+            out_queue,
+            module,
+            hub_client,
+            namespace
+        )
         t.daemon = True
         t.start()
-    
+
     for item in get_filepath(module, policyset_name, manifest_dir):
         in_queue.put({
             'policy_name': f'{policyset_name}-{item["filename"]}',
@@ -501,9 +509,9 @@ def ensure_all_policies(
     policy_names = []
     while True:
         if not out_queue.empty():
-           policy_names.append(out_queue.get())
+            policy_names.append(out_queue.get())
         else:
-           break
+            break
 
     return policy_names
 
@@ -518,11 +526,12 @@ def ensure_placement(module: AnsibleModule, hub_client, name, namespace, cluster
         placement = placement_api.get(name=name, namespace=namespace).to_dict()
 
         # check if PlacementRule needs update
-        old_expressions = placement['spec']['clusterSelector'].get('matchExpressions')
+        old_expressions = placement['spec']['clusterSelector'].get(
+            'matchExpressions')
         if old_expressions:
-            old_expressions=sorted(old_expressions, key=lambda s: s['key'])
+            old_expressions = sorted(old_expressions, key=lambda s: s['key'])
         if expressions:
-            expressions=sorted(expressions, key=lambda s: s['key'])
+            expressions = sorted(expressions, key=lambda s: s['key'])
         if not (expressions == old_expressions):
             # patch PlacementRule expressions
             patch_body = {
@@ -535,7 +544,7 @@ def ensure_placement(module: AnsibleModule, hub_client, name, namespace, cluster
 
             try:
                 placement_api.patch(name=name, namespace=namespace, body=patch_body,
-                            content_type="application/merge-patch+json")
+                                    content_type="application/merge-patch+json")
             except DynamicApiError as e:
                 module.fail_json(
                     msg=f'Failed to patch PlacementRule: {name} namespace: {namespace}.', err=e)
@@ -563,7 +572,8 @@ def ensure_placement_binding(module: AnsibleModule, hub_client, name, namespace)
         kind='PlacementBinding',
     )
     try:
-        placement_binding = placement_binding_api.get(name=name, namespace=namespace)
+        placement_binding = placement_binding_api.get(
+            name=name, namespace=namespace)
     except NotFoundError:
         render_config = {
             'label': LABEL,
@@ -628,17 +638,17 @@ def ensure_policyset(module: AnsibleModule, hub_client, name, description, names
         if update_required:
             try:
                 policyset_api.patch(name=name, namespace=namespace, body=patch_body,
-                            content_type="application/merge-patch+json")
+                                    content_type="application/merge-patch+json")
             except DynamicApiError as e:
                 module.fail_json(
                     msg=f'Failed to patch PolicySet: {name} namespace: {namespace}.', err=e)
     except NotFoundError:
         policyset_yaml = render_policyset(
-                        name,
-                        description,
-                        namespace,
-                        policy_names
-                      )
+            name,
+            description,
+            namespace,
+            policy_names
+        )
         policyset = policyset_api.create(policyset_yaml)
 
     return policyset
@@ -670,7 +680,8 @@ def delete_placement_binding(module: AnsibleModule, hub_client, name, namespace)
     )
 
     try:
-        placement_binding = placement_binding_api.get(name=name, namespace=namespace)
+        placement_binding = placement_binding_api.get(
+            name=name, namespace=namespace)
     except NotFoundError:
         return False
 
@@ -678,7 +689,7 @@ def delete_placement_binding(module: AnsibleModule, hub_client, name, namespace)
     if placement_binding.metadata.get('labels') and placement_binding.metadata.labels.get(LABEL_KEY):
         status = placement_binding_api.delete(name=name, namespace=namespace)
         return (status.status == 'Success')
-        
+
     return False
 
 
@@ -720,7 +731,8 @@ class Delete_policy(Thread):
             # Grabs item from queue
             policy_name = self.in_queue.get()
             try:
-                delete_policy(self.module, self.hub_client, policy_name, self.namespace)
+                delete_policy(self.module, self.hub_client,
+                              policy_name, self.namespace)
             except Exception as e:
                 self.module.warning(
                     msg=f"Failed to delete Policy: {policy_name} namespace: {self.namespace}.", err=e)
@@ -741,14 +753,14 @@ def delete_all_policies(
     # Spawn a pool of threads, and pass them queue instance
     for i in range(max_policy_worker_threads):
         t = Delete_policy(
-                in_queue,
-                module,
-                hub_client,
-                namespace
-            )
+            in_queue,
+            module,
+            hub_client,
+            namespace
+        )
         t.daemon = True
         t.start()
-    
+
     for policy_name in policies:
         in_queue.put(policy_name)
 
@@ -796,7 +808,8 @@ def delete_all(module: AnsibleModule, max_policy_worker_threads, hub_client, nam
         placement_rule = placement.get('placementRule')
         delete_placement_rule(module, hub_client, placement_rule, namespace)
         placement_binding = placement.get('placementBinding')
-        delete_placement_binding(module, hub_client, placement_binding, namespace)
+        delete_placement_binding(
+            module, hub_client, placement_binding, namespace)
 
     return delete_policyset(module, hub_client, name, namespace)
 
@@ -809,7 +822,7 @@ def clone_repo(module: AnsibleModule, github_repo_url, github_repo_branch, githu
         else:
             module.fail_json(
                 msg=f'invalid github_repo_url {github_repo_url}')
-    
+
     repo_path = tempfile.mkdtemp()
     try:
         repository = Repo.clone_from(github_repo_url, repo_path)
@@ -889,7 +902,8 @@ def execute_module(module: AnsibleModule):
         github_token = module.params['github_token']
         repo_path = None
         if github_repo_url:
-            repo_path = clone_repo(module, github_repo_url, github_repo_branch, github_token)
+            repo_path = clone_repo(
+                module, github_repo_url, github_repo_branch, github_token)
             manifest_dir = os.path.join(repo_path, manifest_dir)
         policy_names = ensure_all_policies(
             max_policy_worker_threads,
@@ -899,13 +913,16 @@ def execute_module(module: AnsibleModule):
             manifest_dir,
             policyset_name
         )
-        ensure_policyset(module, hub_client, policyset_name, description, namespace, policy_names)
-        ensure_placement(module, hub_client, policyset_name, namespace, cluster_selectors)
+        ensure_policyset(module, hub_client, policyset_name,
+                         description, namespace, policy_names)
+        ensure_placement(module, hub_client, policyset_name,
+                         namespace, cluster_selectors)
         ensure_placement_binding(module, hub_client, policyset_name, namespace)
         if repo_path:
             shutil.rmtree(repo_path)
     else:
-        delete_all(module, max_policy_worker_threads, hub_client, policyset_name, namespace)
+        delete_all(module, max_policy_worker_threads,
+                   hub_client, policyset_name, namespace)
 
     module.exit_json(
         result='PolicySet, Policies, PlacementRule, and PlacementBinding successfully done')
@@ -923,8 +940,8 @@ def main():
         manifest_dir=dict(type='path', required=True),
         github_repository_url=dict(type='str', required=False),
         github_repository_branch=dict(type='str', required=False),
-        github_token=dict(type='str', required=False),
-        cluster_selectors=dict(type='list', required=True),
+        github_token=dict(type='str', no_log=True, required=False),
+        cluster_selectors=dict(type='list', elements='str', required=True),
         max_policy_worker_threads=dict(type='int', default=5)
     )
 
