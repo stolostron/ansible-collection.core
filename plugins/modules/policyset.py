@@ -76,6 +76,7 @@ options:
         - Expressions to match your desired managed clusters.
           A placementRule will be created with this cluster selectors expressions.
         type: list
+        elements: str
         required: True
     max_policy_worker_threads:
         description:
@@ -892,7 +893,7 @@ def execute_module(module: AnsibleModule):
     # validates namespace and policyset_name
     validates(module, hub_client, namespace, policyset_name)
     # remove special characters
-    policyset_name = re.sub('[^A-Za-z0-9\-]+', '', policyset_name)
+    policyset_name = re.sub('[^A-Za-z0-9-]+', '', policyset_name)
     state = module.params['state']
     if state == 'present':
         description = module.params['description']
