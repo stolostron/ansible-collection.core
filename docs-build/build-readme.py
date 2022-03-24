@@ -1,14 +1,9 @@
-#!/usr/bin/env python3
-# Assumes: Python 3.6+
+from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 
 import argparse
-from asyncore import file_dispatcher
 import os
-import shutil
-import yaml
-import array
-import logging
-        
+
 
 def readFileAsLines(filepath, trim=True):
     lines = []
@@ -20,6 +15,7 @@ def readFileAsLines(filepath, trim=True):
             lines.append(cleanLine)
     return lines
 
+
 def grabAndCleanName(lines):
     key = ".. Title"
     if key not in lines:
@@ -29,6 +25,7 @@ def grabAndCleanName(lines):
     if len(lines) <= nameIndex:
         return None
     return lines[nameIndex].split("--")[0].strip()
+
 
 def grabAndCleanDescription(lines):
     startKey = ".. Description"
@@ -40,28 +37,30 @@ def grabAndCleanDescription(lines):
     if endIndex - startIndex <= 1:
         return ""
     description = ""
-    for i in range(startIndex+1, endIndex):
-        descriptionLine = "{}.".format(lines[i].strip(" .-"))
-        if descriptionLine == "":
+    for i in range(startIndex + 1, endIndex):
+        if lines[i].strip(" .-") == "":
             continue
-        description = "{} {}".format(description, descriptionLine)
+        descriptionLine = "{0}.".format(lines[i].strip(" .-"))
+        description = "{0} {1}".format(description, descriptionLine)
     return description.strip()
 
+
 def buildDocLink(urlBase, filepath):
-    return "{}{}".format(urlBase, filepath)
+    return "{0}{1}".format(urlBase, filepath)
+
 
 def buildReadmeTable(content):
     table = ""
     header = "Name | Description\n--- | ---\n"
     table += header
     for item in content:
-        print(item)
-        table += "[{}]({})| {}\n".format(item["name"], item["doclink"], item["description"])
+        table += "[{0}]({1})| {2}\n".format(item["name"],
+                                            item["doclink"], item["description"])
     return table
+
 
 def insertTableIntoReadme(readmePath, readmeTable):
     lines = readFileAsLines(readmePath, False)
-    print(lines)
     # just splice all entries before the before and after keys
     startKey = "<!--start collection content-->"
     endKey = "<!--end collection content-->"
@@ -71,7 +70,7 @@ def insertTableIntoReadme(readmePath, readmeTable):
     endIndex = lines.index(endKey)
     if startIndex >= endIndex:
         return
-    start = lines[:startIndex+1]
+    start = lines[:startIndex + 1]
     end = lines[endIndex:]
     resultLines = start + [readmeTable.strip()] + end
     resultStr = "\n".join(resultLines)
@@ -84,12 +83,15 @@ def insertTableIntoReadme(readmePath, readmeTable):
     # then write the file again
     return None
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--docs-dir", dest="docsDir", type=str, help="Directory for docs")
-    parser.add_argument("--url-base", dest="urlBase", type=str, help="Base URL for building doc link")
-    parser.add_argument("--readme-path", dest="readmePath", type=str, help="Path to README")
-    
+    parser.add_argument("--docs-dir", dest="docsDir",
+                        type=str, help="Directory for docs")
+    parser.add_argument("--url-base", dest="urlBase", type=str,
+                        help="Base URL for building doc link")
+    parser.add_argument("--readme-path", dest="readmePath",
+                        type=str, help="Path to README")
     args = parser.parse_args()
     docsDir = args.docsDir
     urlBase = args.urlBase
@@ -97,7 +99,7 @@ def main():
     content = []
     # tempRSTDir = os.path.join(os.path.dirname(os.path.realpath(__file__)),"temp-rst")
     for filename in os.listdir(docsDir):
-        if not filename.endswith(".rst"): # or filename == 'index.rst': 
+        if not filename.endswith(".rst"):
             continue
         filepath = os.path.join(docsDir, filename)
         lines = readFileAsLines(filepath)
@@ -114,5 +116,6 @@ def main():
     readmeTable = buildReadmeTable(content)
     insertTableIntoReadme(readmePath, readmeTable)
 
+
 if __name__ == "__main__":
-   main()
+    main()
