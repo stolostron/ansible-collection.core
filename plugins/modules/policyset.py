@@ -114,7 +114,7 @@ import os
 import re
 import shutil
 import tempfile
-import queue as Queue
+from queue import Queue
 from threading import Thread
 import traceback
 
@@ -533,7 +533,7 @@ def ensure_placement(module: AnsibleModule, hub_client, name, namespace, cluster
             old_expressions = sorted(old_expressions, key=lambda s: s['key'])
         if expressions:
             expressions = sorted(expressions, key=lambda s: s['key'])
-        if not (expressions == old_expressions):
+        if expressions != old_expressions:
             # patch PlacementRule expressions
             patch_body = {
                 "spec": {
