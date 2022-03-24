@@ -112,8 +112,8 @@ err:
 
 import os
 import re
-import tempfile
 import shutil
+import tempfile
 import queue as queue
 from threading import Thread
 import traceback
