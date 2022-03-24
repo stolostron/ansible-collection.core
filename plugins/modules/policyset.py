@@ -114,7 +114,7 @@ import os
 import re
 import shutil
 import tempfile
-import queue as queue
+import queue as Queue
 from threading import Thread
 import traceback
 
@@ -482,8 +482,8 @@ def ensure_all_policies(
         manifest_dir,
         policyset_name
 ):
-    in_queue = queue.Queue()
-    out_queue = queue.Queue()
+    in_queue = Queue()
+    out_queue = Queue()
 
     # Spawn a pool of threads, and pass them queue instance
     for i in range(max_policy_worker_threads):
@@ -749,7 +749,7 @@ def delete_all_policies(
         namespace,
         policies
 ):
-    in_queue = queue.Queue()
+    in_queue = Queue()
 
     # Spawn a pool of threads, and pass them queue instance
     for i in range(max_policy_worker_threads):
