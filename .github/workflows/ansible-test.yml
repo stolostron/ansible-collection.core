@@ -2,19 +2,18 @@ name: CI
 on:
   # Run CI against all pushes (direct commits, also merged PRs), Pull Requests
   push:
-    branches: [ main, release-* ]
+    branches: [main, release-*]
   pull_request:
-    branches: [ main, release-* ]
+    branches: [main, release-*]
 env:
-  NAMESPACE: ocmplus
-  COLLECTION_NAME: cm 
+  NAMESPACE: stolostron
+  COLLECTION_NAME: core
 
 jobs:
-
-###
-# Sanity tests (REQUIRED)
-#
-# https://docs.ansible.com/ansible/latest/dev_guide/testing_sanity.html
+  ###
+  # Sanity tests (REQUIRED)
+  #
+  # https://docs.ansible.com/ansible/latest/dev_guide/testing_sanity.html
 
   sanity:
     name: Sanity (Ⓐ${{ matrix.ansible }})
@@ -47,13 +46,13 @@ jobs:
       matrix:
         ansible:
           - stable-2.10
-#          - stable-2.11
+          #          - stable-2.11
           - stable-2.12
           # - devel
         python-version:
           - 3.6
-#          - 3.7
-#          - 3.8
+          #          - 3.7
+          #          - 3.8
           - 3.9
 
     steps:

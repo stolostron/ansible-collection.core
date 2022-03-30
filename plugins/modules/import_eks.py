@@ -146,7 +146,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Import EKS cluster"
-  ocmplus.cm.import_eks:
+  stolostron.core.import_eks:
     eks_cluster_name: "xxxxx"
     hub_kubeconfig: "/path/to/kubeconfig"
     addons:
@@ -179,7 +179,7 @@ err:
 '''
 from ansible_collections.amazon.aws.plugins.module_utils.ec2 import get_aws_connection_info
 from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.ocmplus.cm.plugins.module_utils import import_utils
+from ansible_collections.stolostron.core.plugins.module_utils import import_utils
 from ansible.module_utils.basic import missing_required_lib, to_native
 import traceback
 import logging

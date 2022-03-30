@@ -50,7 +50,7 @@ options:
 '''
 
 EXAMPLES = r'''
-plugin: ocmplus.cm.ocm_managedcluster
+plugin: stolostron.core.ocm_managedcluster
 hub_kubeconfig: /path/to/hub/kubeconfig
 cluster_groups:
 - name: east-region-clusters

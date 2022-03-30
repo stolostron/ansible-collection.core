@@ -2,16 +2,16 @@ name: Galaxy Publish Check
 on:
   # Run publish check against all pushes (direct commits, also merged PRs), Pull Requests
   push:
-    branches: [ main, release-* ]
+    branches: [main, release-*]
   pull_request:
-    branches: [ main, release-* ]
+    branches: [main, release-*]
   # manual trigger
   workflow_dispatch:
 
 env:
-  NAMESPACE: ocmplus
-  COLLECTION_NAME: cm
-  COLLECTION_VERSION: 0.0.1 
+  NAMESPACE: stolostron
+  COLLECTION_NAME: core
+  COLLECTION_VERSION: 0.0.1
 
 jobs:
   check_publish:

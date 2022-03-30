@@ -3,18 +3,18 @@ on:
   # Run docs check against all pushes every day
   # If there is any docs need to update, will create a PR to update
   schedule:
-    - cron: '59 23 * * *'
+    - cron: "59 23 * * *"
   # manual trigger
   workflow_dispatch:
 
 env:
-  NAMESPACE: ocmplus
-  COLLECTION_NAME: cm
+  NAMESPACE: stolostron
+  COLLECTION_NAME: core
   COLLECTION_VERSION: 0.0.1
 
 jobs:
   check_docs:
-    name: Check Plugin Docs 
+    name: Check Plugin Docs
     strategy:
       matrix:
         ansible:
@@ -47,7 +47,7 @@ jobs:
         run: tree docs-build && cp -f docs-build/temp-rst/* docs/ && tree docs && git status
 
       - name: Build README.md
-        run: python3 ./docs-build/build-readme.py --docs-dir docs --url-base https://github.com/stolostron/ocmplus.cm/blob/main/ --readme-path README.md
+        run: python3 ./docs-build/build-readme.py --docs-dir docs --url-base https://github.com/stolostronansible-core/blob/main/ --readme-path README.md
 
       - name: Check status
         run: git status
@@ -62,9 +62,9 @@ jobs:
           signoff: true
           branch: ${{ matrix.branch }}-bot-docs
           delete-branch: true
-          title: '[Github Action] Update Docs'
+          title: "[Github Action] Update Docs"
           body: |
             Update Docs
           draft: false
-          #assignees: 
-          #reviewers: 
+          #assignees:
+          #reviewers:

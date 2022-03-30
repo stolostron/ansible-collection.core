@@ -1,23 +1,22 @@
 ---
-
 - name: "Import EKS cluster integration test"
   hosts: localhost
   tasks:
-  - name: "Import EKS cluster"
-    ocmplus.cm.import_eks:
-      eks_cluster_name: "{{ item }}"
-      hub_kubeconfig: "{{ hub_kubeconfig }}"
-      addons:
-        policy_controller: "{{ policy_controller }}"
-        observability_controller: "{{ observability_controller }}"
-        iam_policy_controller: "{{ iam_policy_controller }}"
-        search_collector: "{{ search_collector }}"
-        application_manager: "{{ application_manager }}"
-        cert_policy_controller: "{{ cert_policy_controller }}"
-      aws_access_key: "{{ aws_access_key }}"
-      aws_secret_key: "{{ aws_secret_key }}"
-      region: "{{ region }}"
-    loop:
-      - "{{ eks_cluster_name }}"
-    register: hub_result
-  - debug: msg="{{ hub_result }}"
+    - name: "Import EKS cluster"
+      stolostron.core.import_eks:
+        eks_cluster_name: "{{ item }}"
+        hub_kubeconfig: "{{ hub_kubeconfig }}"
+        addons:
+          policy_controller: "{{ policy_controller }}"
+          observability_controller: "{{ observability_controller }}"
+          iam_policy_controller: "{{ iam_policy_controller }}"
+          search_collector: "{{ search_collector }}"
+          application_manager: "{{ application_manager }}"
+          cert_policy_controller: "{{ cert_policy_controller }}"
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+      loop:
+        - "{{ eks_cluster_name }}"
+      register: hub_result
+    - debug: msg="{{ hub_result }}"

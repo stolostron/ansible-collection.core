@@ -75,7 +75,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Get serviceaccount token"
-  ocmplus.cm.managed_serviceaccount:
+  stolostron.core.managed_serviceaccount:
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
     wait: True
@@ -83,7 +83,7 @@ EXAMPLES = r'''
   register: managed_serviceaccount
 
 - name: "Remove an existing managed-serviceaccount object"
-  ocmplus.cm.managed_serviceaccount:
+  stolostron.core.managed_serviceaccount:
     state: absent
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
@@ -117,8 +117,8 @@ import base64
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
-from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import check_addon_available
+from ansible_collections.stolostron.core.plugins.module_utils.import_utils import get_managed_cluster
+from ansible_collections.stolostron.core.plugins.module_utils.addon_utils import check_addon_available
 
 IMP_ERR = {}
 try:

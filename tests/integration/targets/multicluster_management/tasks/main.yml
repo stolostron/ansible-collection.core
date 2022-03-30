@@ -1,12 +1,12 @@
 - name: "Install cluster-proxy addon"
-  ocmplus.cm.managedcluster_addon:
+  stolostron.core.managedcluster_addon:
     hub_kubeconfig: "{{ hub_kubeconfig }}"
     managed_cluster: "{{ managedcluster_name }}"
     addon_name: "cluster-proxy"
     wait: True
     timeout: 180
 - name: "Get ClusterProxy URL"
-  ocmplus.cm.cluster_proxy:
+  stolostron.core.cluster_proxy:
     hub_kubeconfig: "{{ hub_kubeconfig }}"
     managed_cluster: "{{ managedcluster_name }}"
     wait: True
@@ -16,14 +16,14 @@
   debug:
     msg: "{{ cluster_proxy.cluster_url }}"
 - name: "Install managed-serviceaccount addon"
-  ocmplus.cm.managedcluster_addon:
+  stolostron.core.managedcluster_addon:
     hub_kubeconfig: "{{ hub_kubeconfig }}"
     managed_cluster: "{{ managedcluster_name }}"
     addon_name: "managed-serviceaccount"
     wait: True
     timeout: 120
 - name: "Create static name managed-serviceaccount"
-  ocmplus.cm.managed_serviceaccount:
+  stolostron.core.managed_serviceaccount:
     state: present
     hub_kubeconfig: "{{ hub_kubeconfig }}"
     managed_cluster: "{{ managedcluster_name }}"
@@ -35,7 +35,7 @@
   debug:
     msg: "token length: {{ static_name_managed_serviceaccount.token | length }}"
 - name: "Configure ServiceAccount RBAC for {{ static_name_managed_serviceaccount.name }}"
-  ocmplus.cm.managed_serviceaccount_rbac:
+  stolostron.core.managed_serviceaccount_rbac:
     hub_kubeconfig: "{{ hub_kubeconfig }}"
     managed_cluster: "{{ managedcluster_name }}"
     managed_serviceaccount_name: "{{ static_name_managed_serviceaccount.name }}"
@@ -60,7 +60,7 @@
         name: "{{ configmap_name }}"
         namespace: "default"
 - name: "Removing static-name managed ServiceAccount {{ static_name_managed_serviceaccount.name }}"
-  ocmplus.cm.managed_serviceaccount:
+  stolostron.core.managed_serviceaccount:
     state: absent
     hub_kubeconfig: "{{ hub_kubeconfig }}"
     managed_cluster: "{{ managedcluster_name }}"
@@ -68,7 +68,7 @@
     wait: True
     timeout: 60
 - name: "Create managed-serviceaccount with generated name"
-  ocmplus.cm.managed_serviceaccount:
+  stolostron.core.managed_serviceaccount:
     state: present
     hub_kubeconfig: "{{ hub_kubeconfig }}"
     managed_cluster: "{{ managedcluster_name }}"
@@ -80,7 +80,7 @@
   debug:
     msg: "token length: {{ generate_name_managed_serviceaccount.token | length }}"
 - name: "Configure ServiceAccount RBAC for {{ generate_name_managed_serviceaccount.name }}"
-  ocmplus.cm.managed_serviceaccount_rbac:
+  stolostron.core.managed_serviceaccount_rbac:
     hub_kubeconfig: "{{ hub_kubeconfig }}"
     managed_cluster: "{{ managedcluster_name }}"
     managed_serviceaccount_name: "{{ generate_name_managed_serviceaccount.name }}"
@@ -106,7 +106,7 @@
         namespace: "default"
   ignore_errors: true
 - name: "Removing generate-name managed ServiceAccount {{ generate_name_managed_serviceaccount.name }}"
-  ocmplus.cm.managed_serviceaccount:
+  stolostron.core.managed_serviceaccount:
     state: absent
     hub_kubeconfig: "{{ hub_kubeconfig }}"
     managed_cluster: "{{ managedcluster_name }}"
