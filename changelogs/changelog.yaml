@@ -1,0 +1,31 @@
+ancestor: null
+releases:
+  0.0.1:
+    changes:
+      release_summary: 'This is the first release of the ``ocmplus.cm`` collection.
+
+        '
+    fragments:
+    - 0.0.1.yml
+    modules:
+    - description: Enable/Disable a feature on the Hub cluster.
+      name: cluster_management_addon
+      namespace: ''
+    - description: Get cluster proxy URL for managedcluster.
+      name: cluster_proxy
+      namespace: ''
+    - description: Setup a serviceaccount on a managedcluster, and return the serviceaccount
+        token.
+      name: managed_serviceaccount
+      namespace: ''
+    - description: Setup a serviceaccount on a managedcluster with the specified RBAC
+        permission.
+      name: managed_serviceaccount_rbac
+      namespace: ''
+    - description: Enable/Disable an addon on a managedcluster.
+      name: managedcluster_addon
+      namespace: ''
+    - description: Fetch ocm managedclusters, and group clusters by labels.
+      name: ocm_managedcluster
+      namespace: ''
+    release_date: '2022-04-06'

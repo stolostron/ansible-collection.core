@@ -87,7 +87,7 @@ See [Contributing to <NAMESPACE_NAME>.<COLLECTION_NAME>](CONTRIBUTING.md).
 
 ## Release Notes
 
-<!-- We should include a changelog -->
+See the [changelog](CHANGELOG.rst).
 
 ## More information
 
