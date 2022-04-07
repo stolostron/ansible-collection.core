@@ -29,7 +29,7 @@ class managed_serviceaccount(addon_base):
         if 'k8s' in IMP_ERR:
             module.fail_json(msg=missing_required_lib('kubernetes'),
                              exception=IMP_ERR['k8s']['exception'])
-        self.component_name = 'managed-service-account'
+        self.component_name = 'managedserviceaccount-preview'
 
     def check_feature(self):
         self.check_cluster_management_addon_feature(
