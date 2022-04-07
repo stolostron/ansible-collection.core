@@ -141,7 +141,7 @@ jobs:
       # Run the integration tests. 
       # Not in docker because we will need access of the hub_kubeconfig file.
       - name: Run integration test
-        run: ansible-test integration -v --color --retry-on-error
+        run: ansible-test integration --color --retry-on-error
         working-directory: ./ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
 
       # ansible-test support producing code coverage date
