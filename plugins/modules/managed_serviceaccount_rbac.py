@@ -77,7 +77,9 @@ import traceback
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
 from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
 from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import get_managed_cluster_addon
-
+from ansible_collections.ocmplus.cm.plugins.module_utils.installer_utils import (
+    check_mce_version
+)
 IMP_ERR = {}
 try:
     import yaml
@@ -165,7 +167,8 @@ def get_yaml_resource_from_files(module, filenames):
 
 
 def get_rbac_resource_from_yaml(module, yaml_resources):
-    rbac_resources = {'Role': {}, 'ClusterRole': {}, 'RoleBinding': {}, 'ClusterRoleBinding': {}}
+    rbac_resources = {'Role': {}, 'ClusterRole': {},
+                      'RoleBinding': {}, 'ClusterRoleBinding': {}}
 
     for resource in yaml_resources:
         if isinstance(resource, dict):
@@ -349,7 +352,8 @@ def ensure_managed_service_account_rbac(
     new_manifest_work = yaml.safe_load(new_manifest_work_raw)
 
     # get the filename for all the rbac files
-    filenames = get_rbac_template_filepaths(module, module.params['rbac_template'])
+    filenames = get_rbac_template_filepaths(
+        module, module.params['rbac_template'])
 
     # gather all the yaml from files
     yaml_resources = get_yaml_resource_from_files(module, filenames)
@@ -364,7 +368,8 @@ def ensure_managed_service_account_rbac(
         'name': managed_service_account.metadata.name,
         'namespace': managed_service_account_addon.spec.installNamespace
     }
-    rbac_manifests = generate_rbac_manifest(module, rbac_resources, postfix, role_subject)
+    rbac_manifests = generate_rbac_manifest(
+        module, rbac_resources, postfix, role_subject)
 
     new_manifest_work['spec']['workload']['manifests'] = rbac_manifests
 
@@ -432,6 +437,8 @@ def execute_module(module: AnsibleModule):
     hub_client = kubernetes.dynamic.DynamicClient(
         kubernetes.client.api_client.ApiClient(configuration=hub_kubeconfig)
     )
+    # make sure version is correct
+    check_mce_version(hub_client, module, '2.0.0')
 
     managed_cluster = get_managed_cluster(hub_client, managed_cluster_name)
     if managed_cluster is None:

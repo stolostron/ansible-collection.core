@@ -6,7 +6,9 @@ import time
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, missing_required_lib
-
+from ansible_collections.ocmplus.cm.plugins.module_utils.installer_utils import (
+    check_mch_version
+)
 IMP_ERR = {}
 try:
     from kubernetes.dynamic.exceptions import NotFoundError, DynamicApiError, ResourceNotFoundError
@@ -62,6 +64,9 @@ class addon_base():
 
     def disable_feature(self):
         pass
+
+    def check_cluster_version(self):
+        check_mch_version(self.hub_client, self.module, '2.5.0')
 
     def wait_for_feature_enabled(self) -> bool:
         cluster_management_addon_api = self.hub_client.resources.get(
