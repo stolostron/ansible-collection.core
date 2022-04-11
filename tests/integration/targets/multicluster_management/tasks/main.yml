@@ -46,7 +46,7 @@
   ignore_errors: true
 - name: debug
   debug:
-    msg: "{{ result.result }}"
+    msg: "{{ result.msg }}"
 - name: "Creating configmap {{ configmap_name }}"
   kubernetes.core.k8s:
     state: present
@@ -91,7 +91,7 @@
   ignore_errors: true
 - name: debug
   debug:
-    msg: "{{ result.result }}"
+    msg: "{{ result.msg }}"
 - name: "Delete configmap {{ configmap_name }}"
   kubernetes.core.k8s:
     state: absent

@@ -67,10 +67,10 @@ class cluster_proxy(addon_base):
             )
             try:
                 cluster_management_addon_api.get(name=self.addon_name)
-            except NotFoundError:
+            except NotFoundError as e:
                 if not self.wait_for_feature_enabled():
                     self.module.fail_json(
-                        msg=f'timeout waiting for the feature {self.addon_name} to be enabled.')
+                        msg=f'timeout waiting for the feature {self.addon_name} to be enabled.', exception=e)
         return changed
 
     def disable_feature(self):
@@ -96,4 +96,4 @@ class cluster_proxy(addon_base):
                 content_type="application/merge-patch+json")
         except DynamicApiError as e:
             self.module.fail_json(
-                msg=f'failed to patch MultiClusterHub {mch.metadata.name} in {mch.metadata.namespace} namespace.', err=e)
+                msg=f'failed to patch MultiClusterHub {mch.metadata.name} in {mch.metadata.namespace} namespace.', exception=e)

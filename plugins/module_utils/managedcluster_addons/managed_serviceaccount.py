@@ -83,10 +83,10 @@ class managed_serviceaccount(addon_base):
             )
             try:
                 cluster_management_addon_api.get(name=self.addon_name)
-            except NotFoundError:
+            except NotFoundError as e:
                 if not self.wait_for_feature_enabled():
                     self.module.fail_json(
-                        msg=f'timeout waiting for the feature {self.addon_name} to be enabled.')
+                        msg=f'timeout waiting for the feature {self.addon_name} to be enabled.', exception=e)
 
         return changed
 
@@ -123,7 +123,7 @@ class managed_serviceaccount(addon_base):
                 content_type="application/merge-patch+json")
         except DynamicApiError as e:
             self.module.fail_json(
-                msg=f'failed to patch MultiClusterHub {mce.metadata.name}.', err=e)
+                msg=f'failed to patch MultiClusterHub {mce.metadata.name}.', exception=e)
 
     def update_multi_cluster_hub_feature(self, mch, state=False):
         mch_api = self.hub_client.resources.get(
@@ -139,7 +139,7 @@ class managed_serviceaccount(addon_base):
                 content_type="application/merge-patch+json")
         except DynamicApiError as e:
             self.module.fail_json(
-                msg=f'failed to patch MultiClusterHub {mch.metadata.name} in {mch.metadata.namespace} namespace.', err=e)
+                msg=f'failed to patch MultiClusterHub {mch.metadata.name} in {mch.metadata.namespace} namespace.', exception=e)
 
     # get_feature_enablement gets enablement of managedserviceaccount from a MultiClusterHub CR or a MultiClusterEngine CR
     def get_feature_enablement(self, mch):

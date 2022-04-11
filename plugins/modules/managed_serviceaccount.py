@@ -93,23 +93,27 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
+msg:
+    description: human readable message describing the managed serviceaccount is ready or not.
+    returned: always
+    type: str
 name:
-  description: Managed ServiceAccount name
-  returned: success
-  type: str
+    description: Managed ServiceAccount name
+    returned: success
+    type: str
 managed_cluster:
-  description: Managed cluster name
-  returned: success
-  type: str
+    description: Managed cluster name
+    returned: success
+    type: str
 token:
-  description: ServiceAccount token
-  returned: success
-  type: str
-err:
-  description: Error message
-  returned: when there's an error
-  type: str
-  sample: null
+    description: ServiceAccount token
+    returned: success
+    type: str
+exception:
+    description: exception catched during the process.
+    returned: when exception is catched
+    type: complex
+    contains: {}
 '''
 
 import time
@@ -220,11 +224,14 @@ def ensure_managed_serviceaccount(module: AnsibleModule, hub_client, managed_clu
             module.params['name'],
         )
 
-    new_managed_serviceaccount_raw = Template(MANAGED_SERVICEACCOUNT_TEMPLATE).render(module.params)
-    managed_serviceaccount_yaml = yaml.safe_load(new_managed_serviceaccount_raw)
+    new_managed_serviceaccount_raw = Template(
+        MANAGED_SERVICEACCOUNT_TEMPLATE).render(module.params)
+    managed_serviceaccount_yaml = yaml.safe_load(
+        new_managed_serviceaccount_raw)
 
     if managed_serviceaccount is None:
-        managed_serviceaccount = managed_serviceaccount_api.create(managed_serviceaccount_yaml)
+        managed_serviceaccount = managed_serviceaccount_api.create(
+            managed_serviceaccount_yaml)
     else:
         managed_serviceaccount = managed_serviceaccount_api.patch(
             name=module.params['name'],
@@ -322,13 +329,13 @@ def execute_module(module: AnsibleModule):
         # get token
         token_bytes = base64.b64decode(secret.data.token)
         token = token_bytes.decode('ascii')
-        managed_serviceaccount = {
+        ret = {
             'name': managed_serviceaccount.metadata.name,
             'managed_cluster': managed_cluster_name,
             'token': token,
         }
         module.exit_json(
-            changed=True, **managed_serviceaccount)
+            changed=True, **ret, msg=f'managed serviceaccount {ret.get("name","")} is ready.')
     elif state == 'absent':
         managed_serviceaccount_name = module.params['name']
         ret = {
@@ -341,11 +348,11 @@ def execute_module(module: AnsibleModule):
 
         if managed_serviceaccount is None:
             module.exit_json(
-                changed=False, **ret)
+                changed=False, **ret, msg=f'managed serviceaccount {managed_serviceaccount_name} is deleted.')
 
         if delete_managed_serviceaccount(hub_client, managed_serviceaccount):
             module.exit_json(
-                changed=True, **ret)
+                changed=True, **ret, msg=f'managed serviceaccount {managed_serviceaccount_name} is deleted.')
         else:
             module.fail_json(
                 msg=f'Error deleting managed-serviceaccount {managed_serviceaccount_name}')

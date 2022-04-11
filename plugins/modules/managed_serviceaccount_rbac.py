@@ -64,11 +64,16 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
-result:
+msg:
     description:
     - message describing the RBAC configuration successfully done.
     returned: success
     type: str
+exception:
+    description: exception catched during the process.
+    returned: when exception is catched
+    type: complex
+    contains: {}
 '''
 
 import os
@@ -165,7 +170,8 @@ def get_yaml_resource_from_files(module, filenames):
 
 
 def get_rbac_resource_from_yaml(module, yaml_resources):
-    rbac_resources = {'Role': {}, 'ClusterRole': {}, 'RoleBinding': {}, 'ClusterRoleBinding': {}}
+    rbac_resources = {'Role': {}, 'ClusterRole': {},
+                      'RoleBinding': {}, 'ClusterRoleBinding': {}}
 
     for resource in yaml_resources:
         if isinstance(resource, dict):
@@ -349,7 +355,8 @@ def ensure_managed_service_account_rbac(
     new_manifest_work = yaml.safe_load(new_manifest_work_raw)
 
     # get the filename for all the rbac files
-    filenames = get_rbac_template_filepaths(module, module.params['rbac_template'])
+    filenames = get_rbac_template_filepaths(
+        module, module.params['rbac_template'])
 
     # gather all the yaml from files
     yaml_resources = get_yaml_resource_from_files(module, filenames)
@@ -364,7 +371,8 @@ def ensure_managed_service_account_rbac(
         'name': managed_service_account.metadata.name,
         'namespace': managed_service_account_addon.spec.installNamespace
     }
-    rbac_manifests = generate_rbac_manifest(module, rbac_resources, postfix, role_subject)
+    rbac_manifests = generate_rbac_manifest(
+        module, rbac_resources, postfix, role_subject)
 
     new_manifest_work['spec']['workload']['manifests'] = rbac_manifests
 
@@ -446,7 +454,7 @@ def execute_module(module: AnsibleModule):
             module, hub_client, manifest_work, timeout)
 
     module.exit_json(
-        result=f"RBAC configuration successfully done for managed cluster {managed_cluster_name}")
+        msg=f"RBAC configuration successfully done for managed cluster {managed_cluster_name}")
 
 
 def main():

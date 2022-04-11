@@ -81,10 +81,15 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
-result:
+msg:
     description: message describing the addon enabled/disabled successfully done.
     returned: success
     type: str
+exception:
+    description: exception catched during the process.
+    returned: when exception is catched
+    type: complex
+    contains: {}
 '''
 
 import os
