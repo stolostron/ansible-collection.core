@@ -137,3 +137,6 @@ dmypy.json
 # test files
 args.json
 tests/integration/integration_config.yml
+
+# changelogs file
+changelogs/.plugin-cache.yaml
