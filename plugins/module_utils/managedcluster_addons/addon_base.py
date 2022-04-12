@@ -90,14 +90,14 @@ class addon_base():
 
         try:
             return cluster_management_addon_api.get(name=addon_name)
-        except NotFoundError:
+        except NotFoundError as e:
             module.fail_json(
-                msg=f'failed to check feature: {addon_name} of ClusterManagementAddOn is not enabled')
+                msg=f'failed to check feature: {addon_name} of ClusterManagementAddOn is not enabled', exception=e)
 
     def enable_managed_cluster_addon(self, module: AnsibleModule, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
         if self.check_addon_available(hub_client, managed_cluster_name, addon_name):
             return module.exit_json(
-                changed=False, result=f'addon: {addon_name} is already enabled in {managed_cluster_name}')
+                changed=False, msg=f'addon: {addon_name} is already enabled in {managed_cluster_name}')
         self.ensure_managed_cluster_addon_enabled(
             module, hub_client, addon_name, managed_cluster_name)
 
@@ -107,7 +107,7 @@ class addon_base():
 
         if self.check_addon_available(hub_client, managed_cluster_name, addon_name):
             return module.exit_json(
-                changed=True, result=f'addon: {addon_name} enabled in {managed_cluster_name} successfully')
+                changed=True, msg=f'addon: {addon_name} enabled in {managed_cluster_name} successfully')
         else:
             return module.fail_json(
                 msg=f'failed to enable addon: {addon_name}')
@@ -117,10 +117,10 @@ class addon_base():
             hub_client, managed_cluster_name, addon_name)
         if managed_cluster_addon is None:
             return module.exit_json(
-                changed=False, result=f'addon: {addon_name} in {managed_cluster_name} is not found or already disabled')
+                changed=False, msg=f'addon: {addon_name} in {managed_cluster_name} is not found or already disabled')
         if self.delete_managed_cluster_addon(hub_client, managed_cluster_addon):
             return module.exit_json(
-                changed=True, result=f'addon: {addon_name} disabled in {managed_cluster_name} successfully')
+                changed=True, msg=f'addon: {addon_name} disabled in {managed_cluster_name} successfully')
         else:
             return module.fail_json(
                 msg=f'failed to disable addon: {addon_name}')
@@ -254,7 +254,7 @@ class addon_base():
         kac = kac_list.items[0]
         if getattr(kac.spec, addon_controller_map[addon_name]).enabled == enabled:
             return module.exit_json(
-                changed=False, result=f'addon: {addon_name} is already {enabled_disabled} in {managed_cluster_name}')
+                changed=False, msg=f'addon: {addon_name} is already {enabled_disabled} in {managed_cluster_name}')
 
         getattr(kac.spec, addon_controller_map[addon_name]).enabled = enabled
         try:
@@ -264,9 +264,9 @@ class addon_base():
                 body=kac_list.to_dict()['items'][0],
                 content_type="application/merge-patch+json",
             )
-        except ApiException:
+        except ApiException as e:
             module.fail_json(
-                msg=f'failed to enable klusterletaddonconfig addon: {addon_name}')
+                msg=f'failed to enable klusterletaddonconfig addon: {addon_name}', exception=e)
 
     def enable_klusterlet_addon(self, module: AnsibleModule, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60) -> dict:
         self.ensure_klusterlet_addon(
@@ -276,7 +276,7 @@ class addon_base():
                 module, hub_client, managed_cluster_name, addon_name, timeout)
         if self.check_addon_available(hub_client, managed_cluster_name, addon_name):
             return module.exit_json(
-                changed=True, result=f'addon: {addon_name} enabled in {managed_cluster_name} successfully')
+                changed=True, msg=f'addon: {addon_name} enabled in {managed_cluster_name} successfully')
         else:
             return module.fail_json(
                 msg=f'failed to enable addon: {addon_name}')
@@ -289,7 +289,7 @@ class addon_base():
                 module, hub_client, managed_cluster_name, addon_name, timeout)
         if not self.check_addon_available(hub_client, managed_cluster_name, addon_name):
             return module.exit_json(
-                changed=True, result=f'addon: {addon_name} disabled in {managed_cluster_name} successfully')
+                changed=True, msg=f'addon: {addon_name} disabled in {managed_cluster_name} successfully')
         else:
             return module.fail_json(
                 msg=f'failed to disable addon: {addon_name}')

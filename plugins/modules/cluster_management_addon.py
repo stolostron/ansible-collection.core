@@ -69,10 +69,15 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
-result:
-    description: message describing the addon enabled/disabled successfully done.
-    returned: success
+msg:
+    description: human readable message describing the addon is enabled/disabled.
+    returned: always
     type: str
+exception:
+    description: exception catched during the process.
+    returned: when exception is catched
+    type: complex
+    contains: {}
 '''
 
 import traceback
@@ -119,7 +124,7 @@ def execute_module(module: AnsibleModule):
         changed = new_addon.disable_feature()
 
     module.exit_json(
-        changed=changed, result=f'Addon feature {addon_name} is {"enabled" if enabled else "disabled"}.')
+        changed=changed, msg=f'Addon feature {addon_name} is {"enabled" if enabled else "disabled"}.')
 
 
 def main():

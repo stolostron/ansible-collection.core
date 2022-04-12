@@ -27,7 +27,8 @@ def get_multi_cluster_hub(hub_client, module, ignore_not_found=False):
         mch_list = mch_api.get()
     except (ResourceNotFoundError, NotFoundError) as e:
         if not ignore_not_found:
-            module.fail_json(msg=f'failed to list MultiClusterHub: {e}')
+            module.fail_json(
+                msg=f'failed to list MultiClusterHub: {e}', exception=e)
         return None
 
     if not ignore_not_found and len(mch_list.get('items', [])) < 1:
@@ -45,7 +46,7 @@ def get_multi_cluster_hub(hub_client, module, ignore_not_found=False):
                           namespace=first_mch.metadata.namespace)
     except DynamicApiError as e:
         module.fail_json(
-            msg=f'failed to get MultiClusterHub {first_mch.metadata.name} in {first_mch.metadata.namespace} namespace: {e}')
+            msg=f'failed to get MultiClusterHub {first_mch.metadata.name} in {first_mch.metadata.namespace} namespace: {e}', exception=e)
 
     return mch
 
@@ -69,7 +70,7 @@ def get_multi_cluster_engine(hub_client, module):
     except DynamicApiError as e:
         if module is not None:
             module.fail_json(
-                f'failed to get MultiClusterEngine: {e}.')
+                f'failed to get MultiClusterEngine: {e}.', exception=e)
         return None
 
     first_mce = mce_list.items[0]
@@ -80,7 +81,7 @@ def get_multi_cluster_engine(hub_client, module):
                           namespace=first_mce.metadata.namespace)
     except DynamicApiError as e:
         module.fail_json(
-            msg=f'failed to get MultiClusterEngine {first_mce.metadata.name}: {e}')
+            msg=f'failed to get MultiClusterEngine {first_mce.metadata.name}: {e}', exception=e)
 
     return mce
 
@@ -108,7 +109,7 @@ def get_component_status(obj, module, component_name: str):
             return component.get('enabled', False)
     except (TypeError, AttributeError) as e:
         module.fail_json(
-            msg=f'failed to get enablement status of component {component_name}: {e}')
+            msg=f'failed to get enablement status of component {component_name}: {e}', exception=e)
 
     return False
 
@@ -149,4 +150,4 @@ def set_component_status(obj, module, component_name: str, enabled: bool):
             })
     except (TypeError, AttributeError) as e:
         module.fail_json(
-            msg=f'failed to set enablement status of component {component_name}: {e}')
+            msg=f'failed to set enablement status of component {component_name}: {e}', exception=e)

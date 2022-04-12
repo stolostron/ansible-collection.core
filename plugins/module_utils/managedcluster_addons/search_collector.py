@@ -83,4 +83,4 @@ class search_collector(addon_base):
                 content_type="application/merge-patch+json")
         except DynamicApiError as e:
             self.module.fail_json(
-                msg=f'failed to patch MultiClusterHub {mch.metadata.name} in {mch.metadata.namespace} namespace.', err=e)
+                msg=f'failed to patch MultiClusterHub {mch.metadata.name} in {mch.metadata.namespace} namespace.', exception=e)

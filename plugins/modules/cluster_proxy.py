@@ -49,16 +49,20 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
+msg:
+    description: human readable message describing the cluster proxy is ready or not.
+    returned: always
+    type: str
 cluster_url:
     description: Host url of cluster proxy
     returned: when cluster proxy is enabled and available
     type: str
     sample: "https://cluster-proxy-user.apps.example.com/cluster-name"
-err:
-  description: Error message
-  returned: when there's an error
-  type: str
-  sample: null
+exception:
+    description: exception catched during the process.
+    returned: when exception is catched
+    type: complex
+    contains: {}
 '''
 
 import traceback
@@ -149,8 +153,8 @@ def execute_module(module: AnsibleModule):
     managed_cluster = get_managed_cluster(hub_client, managed_cluster_name)
     if managed_cluster is None:
         # TODO: throw error and exit
-        module.fail_json(f"managedcluster {managed_cluster_name} not found",
-                         err=f"failed to get managedcluster {managed_cluster_name} not found")
+        module.fail_json(msg=f"managedcluster {managed_cluster_name} not found",
+                         exception=f"failed to get managedcluster {managed_cluster_name} not found")
         # TODO: there might be other exit condition
 
     addon_name = 'cluster-proxy'
@@ -160,22 +164,21 @@ def execute_module(module: AnsibleModule):
 
     ocm_namespace = get_ocm_install_namespace(hub_client)
     if ocm_namespace is None:
-        module.fail_json("failed to detect ocm namespace",
-                         err="failed to detect ocm namespace")
+        module.fail_json(msg="failed to detect ocm namespace")
 
     hub_proxy_url = get_hub_proxy_route(hub_client, ocm_namespace)
     if hub_proxy_url == "" or hub_proxy_url is None:
-        module.fail_json("failed to get hub proxy url",
-                         err="failed to get hub proxy url")
+        module.fail_json(msg="failed to get hub proxy url")
 
     cluster_url = f"https://{hub_proxy_url}/{managed_cluster_name}"
     health_url = f"{cluster_url}/healthz"
     if wait:
         if not wait_for_proxy_route_available(health_url, timeout):
-            module.fail_json(f"timed out waiting for proxy url {health_url} to become available",
-                             err=f"timed out waiting for proxy url {health_url} to become available")
+            module.fail_json(
+                msg=f"timed out waiting for proxy url {health_url} to become available")
 
-    module.exit_json(cluster_url=cluster_url)
+    module.exit_json(cluster_url=cluster_url,
+                     msg=f'cluster proxy is ready at {cluster_url}.')
 
 
 def main():
