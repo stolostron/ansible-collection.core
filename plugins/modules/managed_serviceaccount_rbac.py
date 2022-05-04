@@ -269,7 +269,7 @@ def generate_rbac_manifest(module, rbac_resources, postfix, role_subject):
 
         # rename roleRef.name for roles that we are creating
         role_ref_name = rolebinding['roleRef']['name']
-        role_ref_namespace = rolebinding['metadata'].get('namespace')
+        role_ref_namespace = rolebinding['metadata'].get('namespace', "")
         role_ref_kind = rolebinding['roleRef']['kind']
         role_ref_namespaced_name = f"{role_ref_namespace}/{role_ref_name}"
         if rbac_resources.get(role_ref_kind, {}).get(role_ref_namespaced_name) is not None:
@@ -278,7 +278,7 @@ def generate_rbac_manifest(module, rbac_resources, postfix, role_subject):
 
     for role in {**rbac_resources['ClusterRole'], **rbac_resources['Role']}.values():
         role_name = role['metadata']['name']
-        role_namespace = role['metadata'].get('namespace')
+        role_namespace = role['metadata'].get('namespace', "")
         role_namespaced_name = f"{role_namespace}/{role_name}"
 
         if referenced_roles.get(role_namespaced_name, False) is False:
