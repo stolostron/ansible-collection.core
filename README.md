@@ -22,7 +22,6 @@ Tested with Python 3.6, Python 3.7, Python 3.8, and Python 3.9. Python versions 
 <!--start collection content-->
 Name | Description
 --- | ---
-[ocmplus.cm.import_eks](https://github.com/stolostron/ocmplus.cm/blob/main/docs/import_eks_module.rst)| Import an AWS EKS cluster into an ACM Hub cluster.
 [ocmplus.cm.cluster_proxy](https://github.com/stolostron/ocmplus.cm/blob/main/docs/cluster_proxy_module.rst)| Install the cluster proxy on a managedcluster, and get proxy url from the addon. cluster-admin permission on hub is assumed to enable the plugin.
 [ocmplus.cm.managed_serviceaccount_rbac](https://github.com/stolostron/ocmplus.cm/blob/main/docs/managed_serviceaccount_rbac_module.rst)| Use the managed-serviceaccount RBAC to setup a serviceaccount on a managedcluster with the specified RBAC permission.
 [ocmplus.cm.cluster_management_addon](https://github.com/stolostron/ocmplus.cm/blob/main/docs/cluster_management_addon_module.rst)| Use cluster_management_addon to enable/disable a feature on the hub. Users can only install an addon on managed clusters if the feature of that addon is enabled. This plugin will need access to the Multicloudhub CR, and it enables/disables available features by updating the corresponding fields in the CR.
