@@ -208,9 +208,24 @@ Common return values are documented :ref:`here <common_return_values>`, the foll
         </tr>
                     <tr>
                                 <td colspan="1">
-                    <div class="ansibleOptionAnchor" id="return-result"></div>
-                    <b>result</b>
-                    <a class="ansibleOptionLink" href="#return-result" title="Permalink to this return value"></a>
+                    <div class="ansibleOptionAnchor" id="return-exception"></div>
+                    <b>exception</b>
+                    <a class="ansibleOptionLink" href="#return-exception" title="Permalink to this return value"></a>
+                    <div style="font-size: small">
+                      <span style="color: purple">complex</span>
+                                          </div>
+                                    </td>
+                <td>when exception is catched</td>
+                <td>
+                                            <div>exception catched during the process.</div>
+                                        <br/>
+                                    </td>
+            </tr>
+                                <tr>
+                                <td colspan="1">
+                    <div class="ansibleOptionAnchor" id="return-msg"></div>
+                    <b>msg</b>
+                    <a class="ansibleOptionLink" href="#return-msg" title="Permalink to this return value"></a>
                     <div style="font-size: small">
                       <span style="color: purple">string</span>
                                           </div>
