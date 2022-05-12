@@ -1,7 +1,0 @@
-plugin: ocmplus.cm.ocm_managedcluster
-hub_kubeconfig: /Users/nweather/git/lifeguard/clusterclaims/nweather-hub/kubeconfig
-cluster_groups:
-- name: openshift-clusters
-  label_selectors:
-  - vendor=OpenShift
-  - name!=local-cluster

@@ -1,5 +1,0 @@
-[hub_cluster]
-nweather-hub kubeconfig=/Users/nweather/git/lifeguard/clusterclaims/hub1/kubeconfig
-
-[all:vars]
-ansible_python_interpreter=/Users/nweather/python-venv/ansible2.12/bin/python
