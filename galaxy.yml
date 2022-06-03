@@ -20,7 +20,7 @@ authors:
 
 ### OPTIONAL but strongly recommended
 # A short summary description of the collection
-description: An Ansible Collection for use with the stolostron and ocmplus projects, as well as the Red Hat Advanced Cluster Management for Kubernetes and MultiCluster Engine Products.  
+description: An Ansible collection for Red Hat Advanced Cluster Management for Kubernetes integration
 
 # Either a single license or a list of licenses for content inside of a collection. Ansible Galaxy currently only
 # accepts L(SPDX,https://spdx.org/licenses/) licenses. This key is mutually exclusive with 'license_file'
@@ -66,4 +66,5 @@ issues: https://github.com/stolostron/ocmplus.cm/issues
 # artifact. A pattern is matched from the relative path of the file or directory of the collection directory. This
 # uses 'fnmatch' to match the files or directories. Some directories and files like 'galaxy.yml', '*.pyc', '*.retry',
 # and '.git' are always filtered
-build_ignore: []
+build_ignore:
+- docs-build
