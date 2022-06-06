@@ -10,7 +10,6 @@ on:
 env:
   NAMESPACE: ocmplus
   COLLECTION_NAME: cm
-  COLLECTION_VERSION: 0.0.1
 
 jobs:
   check_docs:
@@ -35,6 +34,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ matrix.branch }}
+      - name: Set collection version
+        run: |
+          echo "COLLECTION_VERSION=$(cat ./galaxy.yml | grep 'version: ' | cut -d ' ' -f 2)" >> $GITHUB_ENV
       - name: Install docs requirements
         run: pip install -r docs-build/requirements.txt
       - name: Install collection
