@@ -28,10 +28,10 @@ Prior to using this collection, include the following configuration updates in t
 - Follow the instructions required for [Enabling cluster proxy add-ons](https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.5/html/clusters/managing-your-clusters#cluster-proxy-addon)
 <!-- Above link isn't live yet. Code base link is here: https://github.com/stolostron/rhacm-docs/blob/2.5_stage/clusters/cluster_proxy_addon.adoc -->
 
-- Run the following command to enable the Managed-ServiceAccount component (technical preview)in the `MultiClusterHub` custom resource. Replace namespace with the name of your project:
+- Run the following command to enable the Managed-ServiceAccount component (technical preview) in the `MultiClusterHub` custom resource. Replace `<multiclusterhub>` with the name of your MultiClusterHub component and `<namespace>` with the name of your project:
 <!-- Official doc for this step doesn't exist yet (aimed for ACM 2.5). Once the doc for ACM exists, we need to remove this bullet and instead reference that doc -->
 ```bash
-oc patch MultiClusterHub multiclusterhub <namespace> --type=json -p='[{"op": "add", "path": "/spec/overrides/components/-","value":{"name":"managedserviceaccount-preview","enabled":true}}]'
+oc patch MultiClusterHub <multiclusterhub> -n <namespace> --type=json -p='[{"op": "add", "path": "/spec/overrides/components/-","value":{"name":"managedserviceaccount-preview","enabled":true}}]'
 ```
 
 - Follow the instructions required for [Enabling ManagedServiceAccount add-ons (Technical Preview)](https://github.com/stolostron/rhacm-docs/blob/2.5_stage/multicluster_engine/addon_managed_service.adoc), starting with Step 2.
