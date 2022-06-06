@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Please make sure the collection root directory is located in ansible collections search path. (e.g. ~/.ansible/collections/ansible_collections/ocmplus/cm)
+- Please make sure the collection root directory is located in ansible collections search path. (e.g. ~/.ansible/collections/ansible_collections/stolostron/core)
 - Make sure you have installed ansible.
 - Make sure you have an ACM (2.5+) cluster ready for integration tests.
 - At least one managedcluster (not a local-cluster) is required to be imported on this cluster.

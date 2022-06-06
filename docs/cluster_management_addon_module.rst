@@ -4,7 +4,7 @@
 
 .. Anchors
 
-.. _ansible_collections.ocmplus.cm.cluster_management_addon_module:
+.. _ansible_collections.stolostron.core.cluster_management_addon_module:
 
 .. Anchors: short name for ansible.builtin
 
@@ -14,17 +14,17 @@
 
 .. Title
 
-ocmplus.cm.cluster_management_addon -- cluster management addon
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+stolostron.core.cluster_management_addon -- cluster management addon
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. Collection note
 
 .. note::
-    This plugin is part of the `ocmplus.cm collection <https://galaxy.ansible.com/ocmplus/cm>`_ (version 0.0.1).
+    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-alpha).
 
-    To install it use: :code:`ansible-galaxy collection install ocmplus.cm`.
+    To install it use: :code:`ansible-galaxy collection install stolostron.core`.
 
-    To use it in a playbook, specify: :code:`ocmplus.cm.cluster_management_addon`.
+    To use it in a playbook, specify: :code:`stolostron.core.cluster_management_addon`.
 
 .. version_added
 
@@ -170,13 +170,13 @@ Examples
 
     
     - name: "Enabled cluster-proxy addon"
-      ocmplus.cm.cluster_management_addon:
+      stolostron.core.cluster_management_addon:
         state: present
         hub_kubeconfig: /path/to/hub/kubeconfig
         addon_name: cluster-proxy
 
     - name: "Disabled cluster-proxy addon"
-      ocmplus.cm.cluster_management_addon:
+      stolostron.core.cluster_management_addon:
         state: absent
         hub_kubeconfig: /path/to/hub/kubeconfig
         addon_name: cluster-proxy

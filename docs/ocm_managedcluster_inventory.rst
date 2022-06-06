@@ -4,7 +4,7 @@
 
 .. Anchors
 
-.. _ansible_collections.ocmplus.cm.ocm_managedcluster_inventory:
+.. _ansible_collections.stolostron.core.ocm_managedcluster_inventory:
 
 .. Anchors: short name for ansible.builtin
 
@@ -14,17 +14,17 @@
 
 .. Title
 
-ocmplus.cm.ocm_managedcluster -- OCM managedcluster inventory
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+stolostron.core.ocm_managedcluster -- OCM managedcluster inventory
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. Collection note
 
 .. note::
-    This plugin is part of the `ocmplus.cm collection <https://galaxy.ansible.com/ocmplus/cm>`_ (version 0.0.1).
+    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-alpha).
 
-    To install it use: :code:`ansible-galaxy collection install ocmplus.cm`.
+    To install it use: :code:`ansible-galaxy collection install stolostron.core`.
 
-    To use it in a playbook, specify: :code:`ocmplus.cm.ocm_managedcluster`.
+    To use it in a playbook, specify: :code:`stolostron.core.ocm_managedcluster`.
 
 .. version_added
 
@@ -170,7 +170,7 @@ Examples
 .. code-block:: yaml+jinja
 
     
-    plugin: ocmplus.cm.ocm_managedcluster
+    plugin: stolostron.core.ocm_managedcluster
     hub_kubeconfig: /path/to/hub/kubeconfig
     cluster_groups:
     - name: east-region-clusters

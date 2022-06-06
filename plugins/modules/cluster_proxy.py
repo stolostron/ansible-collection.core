@@ -42,7 +42,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Get proxy cluster url for example-cluster"
-  ocmplus.cm.cluster_proxy:
+  stolostron.core.cluster_proxy:
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
   register: cluster_proxy_url
@@ -68,8 +68,8 @@ exception:
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
-from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import check_addon_available
+from ansible_collections.stolostron.core.plugins.module_utils.import_utils import get_managed_cluster
+from ansible_collections.stolostron.core.plugins.module_utils.addon_utils import check_addon_available
 
 IMP_ERR = {}
 try:

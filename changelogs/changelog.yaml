@@ -1,12 +1,12 @@
 ancestor: null
 releases:
-  0.0.1:
+  0.0.1-alpha:
     changes:
-      release_summary: 'This is the first release of the ``ocmplus.cm`` collection.
+      release_summary: 'This is the first release of the ``stolostron.core`` collection.
 
         '
     fragments:
-    - 0.0.1.yml
+    - 0.0.1-alpha.yml
     modules:
     - description: Enable/Disable a feature on the Hub cluster.
       name: cluster_management_addon

@@ -4,8 +4,8 @@ on:
   pull_request_target:
     branches: [ main, release-* ]
 env:
-  NAMESPACE: ocmplus
-  COLLECTION_NAME: cm 
+  NAMESPACE: stolostron
+  COLLECTION_NAME: core
 
 jobs:
   integration:

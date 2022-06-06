@@ -1,5 +1,5 @@
 <!-- Taking from community.general and community.kubernetes -->
-# <COLLECTION_NAME>
+# Ansible Collection for Red Hat Advanced Cluster Management for Kubernetes Integration
 
 This collection includes modules and plugins for driving Red Hat Advanced Cluster Management for Kubernetes functionality from Ansible Playbooks.
 
@@ -41,12 +41,12 @@ oc patch MultiClusterHub <multiclusterhub> -n <namespace> --type=json -p='[{"op"
 <!--start collection content-->
 Name | Description
 --- | ---
-[ocmplus.cm.cluster_proxy](https://github.com/stolostron/ocmplus.cm/blob/main/docs/cluster_proxy_module.rst)| Install the cluster proxy on a managedcluster, and get proxy url from the addon. cluster-admin permission on hub is assumed to enable the plugin.
-[ocmplus.cm.cluster_management_addon](https://github.com/stolostron/ocmplus.cm/blob/main/docs/cluster_management_addon_module.rst)| Use cluster_management_addon to enable/disable a feature on the hub. Users can only install an addon on managed clusters if the feature of that addon is enabled. This plugin will need access to the Multicloudhub CR, and it enables/disables available features by updating the corresponding fields in the CR.
-[ocmplus.cm.managed_serviceaccount_rbac](https://github.com/stolostron/ocmplus.cm/blob/main/docs/managed_serviceaccount_rbac_module.rst)| Use the managed-serviceaccount RBAC to setup a serviceaccount on a managedcluster with the specified RBAC permission.
-[ocmplus.cm.managedcluster_addon](https://github.com/stolostron/ocmplus.cm/blob/main/docs/managedcluster_addon_module.rst)| Use managedcluster_addon to enable/disable an addon on a managedcluster.
-[ocmplus.cm.ocm_managedcluster](https://github.com/stolostron/ocmplus.cm/blob/main/docs/ocm_managedcluster_inventory.rst)| Fetch ocm managedclusters, and group clusters by labels. Hub cluster information will be stored in the "hub" group.
-[ocmplus.cm.managed_serviceaccount](https://github.com/stolostron/ocmplus.cm/blob/main/docs/managed_serviceaccount_module.rst)| Use the managed-serviceaccount to setup a serviceaccount on a managedcluster, and return the serviceaccount token.
+[stolostron.core.cluster_management_addon](https://github.com/stolostron/ansible-collection.core/blob/main/docs/cluster_management_addon_module.rst)| Use cluster_management_addon to enable/disable a feature on the hub. Users can only install an addon on managed clusters if the feature of that addon is enabled. This plugin will need access to the Multicloudhub CR, and it enables/disables available features by updating the corresponding fields in the CR.
+[stolostron.core.managedcluster_addon](https://github.com/stolostron/ansible-collection.core/blob/main/docs/managedcluster_addon_module.rst)| Use managedcluster_addon to enable/disable an addon on a managedcluster.
+[stolostron.core.ocm_managedcluster](https://github.com/stolostron/ansible-collection.core/blob/main/docs/ocm_managedcluster_inventory.rst)| Fetch ocm managedclusters, and group clusters by labels. Hub cluster information will be stored in the "hub" group.
+[stolostron.core.cluster_proxy](https://github.com/stolostron/ansible-collection.core/blob/main/docs/cluster_proxy_module.rst)| Install the cluster proxy on a managedcluster, and get proxy url from the addon. cluster-admin permission on hub is assumed to enable the plugin.
+[stolostron.core.managed_serviceaccount](https://github.com/stolostron/ansible-collection.core/blob/main/docs/managed_serviceaccount_module.rst)| Use the managed-serviceaccount to setup a serviceaccount on a managedcluster, and return the serviceaccount token.
+[stolostron.core.managed_serviceaccount_rbac](https://github.com/stolostron/ansible-collection.core/blob/main/docs/managed_serviceaccount_rbac_module.rst)| Use the managed-serviceaccount RBAC to setup a serviceaccount on a managedcluster with the specified RBAC permission.
 <!--end collection content-->
 
 ## Installation and Usage
@@ -64,13 +64,13 @@ You can also include it in a `requirements.yml` file and install it via `ansible
 ```yaml
 ---
 collections:
-  - name: <NAMESPACE_NAME>.<COLLECTION_NAME>
-    version: <COLLECTION_VERSION>
+  - name: stolostron.core
+    version: 0.0.1-alpha
 ```
 
-### Using the <COLLECTION_NAME> Collection in your playbooks
+### Using the `stolostron.core` Collection in your playbooks
 
-It's preferable to use content in this collection using their Fully Qualified Collection Namespace (FQCN), for example `<NAMESPACE_NAME>.<COLLECTION_NAME>.cluster_proxy_addon`:
+It's preferable to use content in this collection using their Fully Qualified Collection Namespace (FQCN), for example `stolostron.core.cluster_proxy_addon`:
 
 ```yaml
 ---
@@ -79,7 +79,7 @@ It's preferable to use content in this collection using their Fully Qualified Co
 
 tasks:
 - name: "Get ClusterProxy URL for {{ hostvars[inventory_hostname].cluster_name }}"
-  <NAMESPACE_NAME>.<COLLECTION_NAME>.cluster_proxy_addon:
+  stolostron.core.cluster_proxy_addon:
     hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
     managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
     wait: True
@@ -97,15 +97,15 @@ If you want to develop new content for this collection or improve what's already
 
 The `tests` directory contains configuration for running sanity, unit, and integration tests using [`ansible-test`](https://docs.ansible.com/ansible/latest/dev_guide/testing_integration.html).
 
-For more information, see the [Testing README](tests/README.md).
+For more information, see the [Testing README](https://github.com/stolostron/ansible-collection.core/blob/main/tests/README.md).
 
 ## Contributing to this collection
 
-See [Contributing to <NAMESPACE_NAME>.<COLLECTION_NAME>](CONTRIBUTING.md).
+See [Contributing to `stolostron.core`](https://github.com/stolostron/ansible-collection.core/blob/main/CONTRIBUTING.md).
 
 ## Release Notes
 
-See the [changelog](https://github.com/stolostron/ocmplus.cm/blob/changelogs/CHANGELOG.rst).
+See the [changelog](https://github.com/stolostron/ansible-collection.core/blob/changelogs/CHANGELOG.rst).
 
 ## More information
 
@@ -115,4 +115,5 @@ For more information, join the [`#forum-acm-devops-wg`](https://coreos.slack.com
 
 Licensed under the Apache License, Version 2.0.
 
-See [LICENSE](LICENSE) for full text.
+See [LICENSE](https://github.com/stolostron/ansible-collection.core/blob/main/LICENSE) for full text.
+

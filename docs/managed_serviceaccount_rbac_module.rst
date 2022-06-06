@@ -4,7 +4,7 @@
 
 .. Anchors
 
-.. _ansible_collections.ocmplus.cm.managed_serviceaccount_rbac_module:
+.. _ansible_collections.stolostron.core.managed_serviceaccount_rbac_module:
 
 .. Anchors: short name for ansible.builtin
 
@@ -14,17 +14,17 @@
 
 .. Title
 
-ocmplus.cm.managed_serviceaccount_rbac -- managed-serviceaccount RBAC
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+stolostron.core.managed_serviceaccount_rbac -- managed-serviceaccount RBAC
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. Collection note
 
 .. note::
-    This plugin is part of the `ocmplus.cm collection <https://galaxy.ansible.com/ocmplus/cm>`_ (version 0.0.1).
+    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-alpha).
 
-    To install it use: :code:`ansible-galaxy collection install ocmplus.cm`.
+    To install it use: :code:`ansible-galaxy collection install stolostron.core`.
 
-    To use it in a playbook, specify: :code:`ocmplus.cm.managed_serviceaccount_rbac`.
+    To use it in a playbook, specify: :code:`stolostron.core.managed_serviceaccount_rbac`.
 
 .. version_added
 
@@ -178,7 +178,7 @@ Examples
 
     
     - name: "Configure RBAC"
-      ocmplus.cm.managed_serviceaccount_rbac:
+      stolostron.core.managed_serviceaccount_rbac:
         hub_kubeconfig: /path/to/hub/kubeconfig
         managed_cluster: example-cluster
         managed_serviceaccount_name: managed-serviceaccount-name

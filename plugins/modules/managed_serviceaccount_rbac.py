@@ -54,7 +54,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Configure RBAC"
-  ocmplus.cm.managed_serviceaccount_rbac:
+  stolostron.core.managed_serviceaccount_rbac:
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
     managed_serviceaccount_name: managed-serviceaccount-name
@@ -80,8 +80,8 @@ import os
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
-from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.addon_utils import get_managed_cluster_addon
+from ansible_collections.stolostron.core.plugins.module_utils.import_utils import get_managed_cluster
+from ansible_collections.stolostron.core.plugins.module_utils.addon_utils import get_managed_cluster_addon
 
 IMP_ERR = {}
 try:

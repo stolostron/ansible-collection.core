@@ -6,7 +6,7 @@ from ansible.module_utils.basic import AnsibleModule
 from .addon_base import addon_base
 import traceback
 from ansible.module_utils.basic import AnsibleModule, missing_required_lib
-from ansible_collections.ocmplus.cm.plugins.module_utils.installer_utils import (
+from ansible_collections.stolostron.core.plugins.module_utils.installer_utils import (
     get_multi_cluster_hub,
     get_multi_cluster_engine,
     get_component_status,

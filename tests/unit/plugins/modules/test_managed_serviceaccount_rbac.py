@@ -8,7 +8,7 @@ import random
 from unittest.mock import MagicMock
 from pathlib import Path
 
-import ansible_collections.ocmplus.cm.plugins.modules.managed_serviceaccount_rbac as msa_rbac
+import ansible_collections.stolostron.core.plugins.modules.managed_serviceaccount_rbac as msa_rbac
 
 
 class TestGetRBACTemplateFilepaths(unittest.TestCase):
