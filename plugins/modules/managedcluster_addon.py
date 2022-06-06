@@ -62,7 +62,7 @@ options:
 
 EXAMPLES = r'''
 - name: "Enabled cluster-proxy addon"
-  ocmplus.cm.managedcluster_addon:
+  stolostron.core.managedcluster_addon:
     state: present
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
@@ -71,7 +71,7 @@ EXAMPLES = r'''
     timeout: 120
 
 - name: "Disabled cluster-proxy addon"
-  ocmplus.cm.managedcluster_addon:
+  stolostron.core.managedcluster_addon:
     state: absent
     hub_kubeconfig: /path/to/hub/kubeconfig
     managed_cluster: example-cluster
@@ -96,14 +96,14 @@ import os
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule, env_fallback, missing_required_lib
-from ansible_collections.ocmplus.cm.plugins.module_utils.import_utils import get_managed_cluster
-from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.application_manager import application_manager
-from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.cert_policy_controller import cert_policy_controller
-from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.cluster_proxy import cluster_proxy
-from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.iam_policy_controller import iam_policy_controller
-from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.managed_serviceaccount import managed_serviceaccount
-from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.policy_controller import policy_controller
-from ansible_collections.ocmplus.cm.plugins.module_utils.managedcluster_addons.search_collector import search_collector
+from ansible_collections.stolostron.core.plugins.module_utils.import_utils import get_managed_cluster
+from ansible_collections.stolostron.core.plugins.module_utils.managedcluster_addons.application_manager import application_manager
+from ansible_collections.stolostron.core.plugins.module_utils.managedcluster_addons.cert_policy_controller import cert_policy_controller
+from ansible_collections.stolostron.core.plugins.module_utils.managedcluster_addons.cluster_proxy import cluster_proxy
+from ansible_collections.stolostron.core.plugins.module_utils.managedcluster_addons.iam_policy_controller import iam_policy_controller
+from ansible_collections.stolostron.core.plugins.module_utils.managedcluster_addons.managed_serviceaccount import managed_serviceaccount
+from ansible_collections.stolostron.core.plugins.module_utils.managedcluster_addons.policy_controller import policy_controller
+from ansible_collections.stolostron.core.plugins.module_utils.managedcluster_addons.search_collector import search_collector
 from pkgutil import iter_modules
 from pathlib import Path
 

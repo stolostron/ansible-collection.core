@@ -4,7 +4,7 @@
 
 .. Anchors
 
-.. _ansible_collections.ocmplus.cm.cluster_proxy_module:
+.. _ansible_collections.stolostron.core.cluster_proxy_module:
 
 .. Anchors: short name for ansible.builtin
 
@@ -14,17 +14,17 @@
 
 .. Title
 
-ocmplus.cm.cluster_proxy -- cluster proxy
-+++++++++++++++++++++++++++++++++++++++++
+stolostron.core.cluster_proxy -- cluster proxy
+++++++++++++++++++++++++++++++++++++++++++++++
 
 .. Collection note
 
 .. note::
-    This plugin is part of the `ocmplus.cm collection <https://galaxy.ansible.com/ocmplus/cm>`_ (version 0.0.1).
+    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-alpha).
 
-    To install it use: :code:`ansible-galaxy collection install ocmplus.cm`.
+    To install it use: :code:`ansible-galaxy collection install stolostron.core`.
 
-    To use it in a playbook, specify: :code:`ocmplus.cm.cluster_proxy`.
+    To use it in a playbook, specify: :code:`stolostron.core.cluster_proxy`.
 
 .. version_added
 
@@ -146,7 +146,7 @@ Examples
 
     
     - name: "Get proxy cluster url for example-cluster"
-      ocmplus.cm.cluster_proxy:
+      stolostron.core.cluster_proxy:
         hub_kubeconfig: /path/to/hub/kubeconfig
         managed_cluster: example-cluster
       register: cluster_proxy_url
@@ -190,16 +190,31 @@ Common return values are documented :ref:`here <common_return_values>`, the foll
             </tr>
                                 <tr>
                                 <td colspan="1">
-                    <div class="ansibleOptionAnchor" id="return-err"></div>
-                    <b>err</b>
-                    <a class="ansibleOptionLink" href="#return-err" title="Permalink to this return value"></a>
+                    <div class="ansibleOptionAnchor" id="return-exception"></div>
+                    <b>exception</b>
+                    <a class="ansibleOptionLink" href="#return-exception" title="Permalink to this return value"></a>
+                    <div style="font-size: small">
+                      <span style="color: purple">complex</span>
+                                          </div>
+                                    </td>
+                <td>when exception is catched</td>
+                <td>
+                                            <div>exception catched during the process.</div>
+                                        <br/>
+                                    </td>
+            </tr>
+                                <tr>
+                                <td colspan="1">
+                    <div class="ansibleOptionAnchor" id="return-msg"></div>
+                    <b>msg</b>
+                    <a class="ansibleOptionLink" href="#return-msg" title="Permalink to this return value"></a>
                     <div style="font-size: small">
                       <span style="color: purple">string</span>
                                           </div>
                                     </td>
-                <td>when there&#x27;s an error</td>
+                <td>always</td>
                 <td>
-                                            <div>Error message</div>
+                                            <div>human readable message describing the cluster proxy is ready or not.</div>
                                         <br/>
                                     </td>
             </tr>

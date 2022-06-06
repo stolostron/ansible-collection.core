@@ -3,7 +3,7 @@ __metaclass__ = type
 
 import unittest
 from unittest.mock import MagicMock
-from ansible_collections.ocmplus.cm.plugins.module_utils.installer_utils import (
+from ansible_collections.stolostron.core.plugins.module_utils.installer_utils import (
     get_component_status,
     set_component_status
 )

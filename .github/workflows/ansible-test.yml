@@ -6,8 +6,8 @@ on:
   pull_request:
     branches: [ main, release-* ]
 env:
-  NAMESPACE: ocmplus
-  COLLECTION_NAME: cm 
+  NAMESPACE: stolostron
+  COLLECTION_NAME: core
 
 jobs:
 

@@ -4,7 +4,7 @@
 
 .. Anchors
 
-.. _ansible_collections.ocmplus.cm.managed_serviceaccount_module:
+.. _ansible_collections.stolostron.core.managed_serviceaccount_module:
 
 .. Anchors: short name for ansible.builtin
 
@@ -14,17 +14,17 @@
 
 .. Title
 
-ocmplus.cm.managed_serviceaccount -- managed serviceaccount
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+stolostron.core.managed_serviceaccount -- managed serviceaccount
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. Collection note
 
 .. note::
-    This plugin is part of the `ocmplus.cm collection <https://galaxy.ansible.com/ocmplus/cm>`_ (version 0.0.1).
+    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-alpha).
 
-    To install it use: :code:`ansible-galaxy collection install ocmplus.cm`.
+    To install it use: :code:`ansible-galaxy collection install stolostron.core`.
 
-    To use it in a playbook, specify: :code:`ocmplus.cm.managed_serviceaccount`.
+    To use it in a playbook, specify: :code:`stolostron.core.managed_serviceaccount`.
 
 .. version_added
 
@@ -217,7 +217,7 @@ Examples
 
     
     - name: "Get serviceaccount token"
-      ocmplus.cm.managed_serviceaccount:
+      stolostron.core.managed_serviceaccount:
         hub_kubeconfig: /path/to/hub/kubeconfig
         managed_cluster: example-cluster
         wait: True
@@ -225,7 +225,7 @@ Examples
       register: managed_serviceaccount
 
     - name: "Remove an existing managed-serviceaccount object"
-      ocmplus.cm.managed_serviceaccount:
+      stolostron.core.managed_serviceaccount:
         state: absent
         hub_kubeconfig: /path/to/hub/kubeconfig
         managed_cluster: example-cluster
@@ -255,16 +255,16 @@ Common return values are documented :ref:`here <common_return_values>`, the foll
         </tr>
                     <tr>
                                 <td colspan="1">
-                    <div class="ansibleOptionAnchor" id="return-err"></div>
-                    <b>err</b>
-                    <a class="ansibleOptionLink" href="#return-err" title="Permalink to this return value"></a>
+                    <div class="ansibleOptionAnchor" id="return-exception"></div>
+                    <b>exception</b>
+                    <a class="ansibleOptionLink" href="#return-exception" title="Permalink to this return value"></a>
                     <div style="font-size: small">
-                      <span style="color: purple">string</span>
+                      <span style="color: purple">complex</span>
                                           </div>
                                     </td>
-                <td>when there&#x27;s an error</td>
+                <td>when exception is catched</td>
                 <td>
-                                            <div>Error message</div>
+                                            <div>exception catched during the process.</div>
                                         <br/>
                                     </td>
             </tr>
@@ -280,6 +280,21 @@ Common return values are documented :ref:`here <common_return_values>`, the foll
                 <td>success</td>
                 <td>
                                             <div>Managed cluster name</div>
+                                        <br/>
+                                    </td>
+            </tr>
+                                <tr>
+                                <td colspan="1">
+                    <div class="ansibleOptionAnchor" id="return-msg"></div>
+                    <b>msg</b>
+                    <a class="ansibleOptionLink" href="#return-msg" title="Permalink to this return value"></a>
+                    <div style="font-size: small">
+                      <span style="color: purple">string</span>
+                                          </div>
+                                    </td>
+                <td>always</td>
+                <td>
+                                            <div>human readable message describing the managed serviceaccount is ready or not.</div>
                                         <br/>
                                     </td>
             </tr>

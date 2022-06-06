@@ -10,7 +10,7 @@ antsibull-docs collection \
     --squash-hierarchy \
     --skip-indexes \
     --dest-dir temp-rst \
-    ocmplus.cm
+    stolostron.core
 
 # Copy collection documentation into source directory
 # rsync -cprv --delete-after temp-rst/ rst/

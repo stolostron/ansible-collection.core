@@ -4,7 +4,7 @@
 
 .. Anchors
 
-.. _ansible_collections.ocmplus.cm.managedcluster_addon_module:
+.. _ansible_collections.stolostron.core.managedcluster_addon_module:
 
 .. Anchors: short name for ansible.builtin
 
@@ -14,17 +14,17 @@
 
 .. Title
 
-ocmplus.cm.managedcluster_addon -- managed cluster addon
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+stolostron.core.managedcluster_addon -- managed cluster addon
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. Collection note
 
 .. note::
-    This plugin is part of the `ocmplus.cm collection <https://galaxy.ansible.com/ocmplus/cm>`_ (version 0.0.1).
+    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-alpha).
 
-    To install it use: :code:`ansible-galaxy collection install ocmplus.cm`.
+    To install it use: :code:`ansible-galaxy collection install stolostron.core`.
 
-    To use it in a playbook, specify: :code:`ocmplus.cm.managedcluster_addon`.
+    To use it in a playbook, specify: :code:`stolostron.core.managedcluster_addon`.
 
 .. version_added
 
@@ -189,7 +189,7 @@ Examples
 
     
     - name: "Enabled cluster-proxy addon"
-      ocmplus.cm.managedcluster_addon:
+      stolostron.core.managedcluster_addon:
         state: present
         hub_kubeconfig: /path/to/hub/kubeconfig
         managed_cluster: example-cluster
@@ -198,7 +198,7 @@ Examples
         timeout: 120
 
     - name: "Disabled cluster-proxy addon"
-      ocmplus.cm.managedcluster_addon:
+      stolostron.core.managedcluster_addon:
         state: absent
         hub_kubeconfig: /path/to/hub/kubeconfig
         managed_cluster: example-cluster
@@ -228,9 +228,24 @@ Common return values are documented :ref:`here <common_return_values>`, the foll
         </tr>
                     <tr>
                                 <td colspan="1">
-                    <div class="ansibleOptionAnchor" id="return-result"></div>
-                    <b>result</b>
-                    <a class="ansibleOptionLink" href="#return-result" title="Permalink to this return value"></a>
+                    <div class="ansibleOptionAnchor" id="return-exception"></div>
+                    <b>exception</b>
+                    <a class="ansibleOptionLink" href="#return-exception" title="Permalink to this return value"></a>
+                    <div style="font-size: small">
+                      <span style="color: purple">complex</span>
+                                          </div>
+                                    </td>
+                <td>when exception is catched</td>
+                <td>
+                                            <div>exception catched during the process.</div>
+                                        <br/>
+                                    </td>
+            </tr>
+                                <tr>
+                                <td colspan="1">
+                    <div class="ansibleOptionAnchor" id="return-msg"></div>
+                    <b>msg</b>
+                    <a class="ansibleOptionLink" href="#return-msg" title="Permalink to this return value"></a>
                     <div style="font-size: small">
                       <span style="color: purple">string</span>
                                           </div>

@@ -8,9 +8,8 @@ on:
   workflow_dispatch:
 
 env:
-  NAMESPACE: ocmplus
-  COLLECTION_NAME: cm
-  COLLECTION_VERSION: 0.0.1
+  NAMESPACE: stolostron
+  COLLECTION_NAME: core
 
 jobs:
   check_docs:
@@ -35,8 +34,12 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ matrix.branch }}
+      - name: Set collection version
+        run: |
+          echo "COLLECTION_VERSION=$(cat ./galaxy.yml | grep 'version: ' | cut -d ' ' -f 2)" >> $GITHUB_ENV
       - name: Install docs requirements
         run: pip install -r docs-build/requirements.txt
+
       - name: Install collection
         run: ansible-galaxy collection install $(pwd)
 
@@ -47,7 +50,7 @@ jobs:
         run: tree docs-build && cp -f docs-build/temp-rst/* docs/ && tree docs && git status
 
       - name: Build README.md
-        run: python3 ./docs-build/build-readme.py --docs-dir docs --url-base https://github.com/stolostron/ocmplus.cm/blob/main/ --readme-path README.md
+        run: python3 ./docs-build/build-readme.py --docs-dir docs --url-base https://github.com/stolostron/ansible-collection.core/blob/main/ --readme-path README.md
 
       - name: Check status
         run: git status
