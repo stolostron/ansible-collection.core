@@ -1,4 +1,4 @@
-<!-- Taking from community.general and community.kubernetes -->
+do not merge <!-- Taking from community.general and community.kubernetes -->
 # Ansible Collection for Red Hat Advanced Cluster Management for Kubernetes Integration
 
 This collection includes modules and plugins for driving Red Hat Advanced Cluster Management for Kubernetes functionality from Ansible Playbooks.
