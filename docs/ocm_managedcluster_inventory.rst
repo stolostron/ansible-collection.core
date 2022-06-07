@@ -20,7 +20,7 @@ stolostron.core.ocm_managedcluster -- OCM managedcluster inventory
 .. Collection note
 
 .. note::
-    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-alpha).
+    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-beta).
 
     To install it use: :code:`ansible-galaxy collection install stolostron.core`.
 
