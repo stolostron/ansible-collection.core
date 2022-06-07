@@ -41,12 +41,12 @@ oc patch MultiClusterHub <multiclusterhub> -n <namespace> --type=json -p='[{"op"
 <!--start collection content-->
 Name | Description
 --- | ---
+[stolostron.core.cluster_management_addon](https://github.com/stolostron/ansible-collection.core/blob/main/docs/cluster_management_addon_module.rst)| Use cluster_management_addon to enable/disable a feature on the hub. Users can only install an addon on managed clusters if the feature of that addon is enabled. This plugin will need access to the Multicloudhub CR, and it enables/disables available features by updating the corresponding fields in the CR.
+[stolostron.core.managedcluster_addon](https://github.com/stolostron/ansible-collection.core/blob/main/docs/managedcluster_addon_module.rst)| Use managedcluster_addon to enable/disable an addon on a managedcluster.
 [stolostron.core.ocm_managedcluster](https://github.com/stolostron/ansible-collection.core/blob/main/docs/ocm_managedcluster_inventory.rst)| Fetch ocm managedclusters, and group clusters by labels. Hub cluster information will be stored in the "hub" group.
 [stolostron.core.cluster_proxy](https://github.com/stolostron/ansible-collection.core/blob/main/docs/cluster_proxy_module.rst)| Install the cluster proxy on a managedcluster, and get proxy url from the addon. cluster-admin permission on hub is assumed to enable the plugin.
-[stolostron.core.managedcluster_addon](https://github.com/stolostron/ansible-collection.core/blob/main/docs/managedcluster_addon_module.rst)| Use managedcluster_addon to enable/disable an addon on a managedcluster.
 [stolostron.core.managed_serviceaccount](https://github.com/stolostron/ansible-collection.core/blob/main/docs/managed_serviceaccount_module.rst)| Use the managed-serviceaccount to setup a serviceaccount on a managedcluster, and return the serviceaccount token.
 [stolostron.core.managed_serviceaccount_rbac](https://github.com/stolostron/ansible-collection.core/blob/main/docs/managed_serviceaccount_rbac_module.rst)| Use the managed-serviceaccount RBAC to setup a serviceaccount on a managedcluster with the specified RBAC permission.
-[stolostron.core.cluster_management_addon](https://github.com/stolostron/ansible-collection.core/blob/main/docs/cluster_management_addon_module.rst)| Use cluster_management_addon to enable/disable a feature on the hub. Users can only install an addon on managed clusters if the feature of that addon is enabled. This plugin will need access to the Multicloudhub CR, and it enables/disables available features by updating the corresponding fields in the CR.
 <!--end collection content-->
 
 ## Installation and Usage
@@ -65,7 +65,7 @@ You can also include it in a `requirements.yml` file and install it via `ansible
 ---
 collections:
   - name: stolostron.core
-    version: 0.0.1-alpha
+    version: 0.0.1-beta
 ```
 
 ### Using the `stolostron.core` Collection in your playbooks
