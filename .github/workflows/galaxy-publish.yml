@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 env:
-  NAMESPACE: ocmplus
-  COLLECTION_NAME: cm
+  NAMESPACE: stolostron
+  COLLECTION_NAME: core
 
 jobs:
   check_publish:
