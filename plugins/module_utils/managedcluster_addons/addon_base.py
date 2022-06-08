@@ -92,7 +92,7 @@ class addon_base():
             return cluster_management_addon_api.get(name=addon_name)
         except NotFoundError as e:
             module.fail_json(
-                msg=f'failed to check feature: {addon_name} of ClusterManagementAddOn is not enabled', exception=e)
+                msg=f'failed to check feature: {addon_name} of ClusterManagementAddOn is not enabled')
 
     def enable_managed_cluster_addon(self, module: AnsibleModule, hub_client, managed_cluster_name, addon_name, wait=False, timeout=60):
         if self.check_addon_available(hub_client, managed_cluster_name, addon_name):
