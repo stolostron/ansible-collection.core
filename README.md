@@ -23,19 +23,15 @@ Tested with Python 3.6, Python 3.7, Python 3.8, and Python 3.9. Python versions 
 
 ## Prepping your Red Hat Advanced Cluster Management for Kubernetes Hub cluster
 
-Prior to using this collection, include the following configuration updates in the `MulticlusterHub` custom resource on your Hub cluster:
+Prior to using this collection, include the following configuration updates on your Hub cluster:
 
-- Follow the instructions required for [Enabling cluster proxy add-ons](https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.5/html/clusters/managing-your-clusters#cluster-proxy-addon)
-<!-- Above link isn't live yet. Code base link is here: https://github.com/stolostron/rhacm-docs/blob/2.5_stage/clusters/cluster_proxy_addon.adoc -->
+- Follow the instructions required for [Enabling cluster proxy add-ons](https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.5/html/clusters/managing-your-clusters#cluster-proxy-addon).
 
-- Run the following command to enable the Managed-ServiceAccount component (technical preview) in the `MultiClusterHub` custom resource. Replace `<multiclusterhub>` with the name of your MultiClusterHub component and `<namespace>` with the name of your project:
-<!-- Official doc for this step doesn't exist yet (aimed for ACM 2.5). Once the doc for ACM exists, we need to remove this bullet and instead reference that doc -->
-```bash
-oc patch MultiClusterHub <multiclusterhub> -n <namespace> --type=json -p='[{"op": "add", "path": "/spec/overrides/components/-","value":{"name":"managedserviceaccount-preview","enabled":true}}]'
-```
+- Follow the instructions required for configuring your `MultiClusterHub` custom resource for the [ManagedServiceAccount add-on (Technology Preview)
+](https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.5/html/install/installing#serviceaccount-addon-intro).
 
-- Follow the instructions required for [Enabling ManagedServiceAccount add-ons (Technical Preview)](https://github.com/stolostron/rhacm-docs/blob/2.5_stage/multicluster_engine/addon_managed_service.adoc), starting with Step 2.
-<!-- Official doc for this step doesn't exist yet (aimed for ACM 2.5). Once the doc for ACM exists, we need to reference that doc instead-->
+- Follow the instructions required for [Enabling ManagedServiceAccount add-ons (Technical Preview)](https://github.com/stolostron/rhacm-docs/blob/2.5_stage/multicluster_engine/addon_managed_service.adoc), beginning with Step 2.
+
 ## Included content
 
 <!--start collection content-->
@@ -53,10 +49,10 @@ Name | Description
 
 ### Installing the Collection from Ansible Galaxy
 
-Before using the <COLLECTION_NAME> collection, you need to install it with the Ansible Galaxy CLI:
+Before using the `stolostron.core` collection, you need to install it with the Ansible Galaxy CLI:
 
 ```bash
-ansible-galaxy collection install <NAMESPACE_NAME>.<COLLECTION_NAME>
+ansible-galaxy collection install stolostron.core
 ```
 
 You can also include it in a `requirements.yml` file and install it via `ansible-galaxy collection install -r requirements.yml`, using the format:
@@ -65,12 +61,12 @@ You can also include it in a `requirements.yml` file and install it via `ansible
 ---
 collections:
   - name: stolostron.core
-    version: 0.0.1-alpha.1
+    version: 0.0.1
 ```
 
 ### Using the `stolostron.core` Collection in your playbooks
 
-It's preferable to use content in this collection using their Fully Qualified Collection Namespace (FQCN), for example `stolostron.core.cluster_proxy_addon`:
+It's preferable to use content in this collection using their Fully Qualified Collection Namespace (FQCN), for example `stolostron.core.cluster_proxy`:
 
 ```yaml
 ---
@@ -79,7 +75,7 @@ It's preferable to use content in this collection using their Fully Qualified Co
 
 tasks:
 - name: "Get ClusterProxy URL for {{ hostvars[inventory_hostname].cluster_name }}"
-  stolostron.core.cluster_proxy_addon:
+  stolostron.core.cluster_proxy:
     hub_kubeconfig: "{{ hostvars['local-cluster'].kubeconfig }}"
     managed_cluster: "{{ hostvars[inventory_hostname].cluster_name }}"
     wait: True
@@ -105,7 +101,7 @@ See [Contributing to `stolostron.core`](https://github.com/stolostron/ansible-co
 
 ## Release Notes
 
-See the [changelog](https://github.com/stolostron/ansible-collection.core/blob/changelogs/CHANGELOG.rst).
+See the [changelog](https://github.com/stolostron/ansible-collection.core/blob/main/CHANGELOG.rst).
 
 ## More information
 

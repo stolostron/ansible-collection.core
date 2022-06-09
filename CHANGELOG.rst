@@ -5,8 +5,8 @@ stolostron.core Collection Release Notes
 .. contents:: Topics
 
 
-v0.0.1-alpha
-============
+v0.0.1
+======
 
 Release Summary
 ---------------
