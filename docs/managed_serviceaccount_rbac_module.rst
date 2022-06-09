@@ -20,7 +20,7 @@ stolostron.core.managed_serviceaccount_rbac -- managed-serviceaccount RBAC
 .. Collection note
 
 .. note::
-    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-alpha.1).
+    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1).
 
     To install it use: :code:`ansible-galaxy collection install stolostron.core`.
 

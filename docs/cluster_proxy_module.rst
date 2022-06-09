@@ -20,7 +20,7 @@ stolostron.core.cluster_proxy -- cluster proxy
 .. Collection note
 
 .. note::
-    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1-alpha.1).
+    This plugin is part of the `stolostron.core collection <https://galaxy.ansible.com/stolostron/core>`_ (version 0.0.1).
 
     To install it use: :code:`ansible-galaxy collection install stolostron.core`.
 
