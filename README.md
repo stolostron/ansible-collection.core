@@ -85,6 +85,8 @@ tasks:
 
 For documentation on how to use individual modules and other content included in this collection, please see the links in the 'Included content' section earlier in this README.
 
+A robust example utilizing the `stolostron.core` collection is available in the [acm-ansible-collection-demo](https://github.com/stolostron/acm-ansible-collection-demo/tree/v0.0.1) GitHub repository.
+
 ## Development
 
 If you want to develop new content for this collection or improve what's already here, the easiest way to work on the collection is to clone it into one of the configured [`COLLECTIONS_PATHS`](https://docs.ansible.com/ansible/latest/reference_appendices/config.html#collections-paths), and work on it there.
