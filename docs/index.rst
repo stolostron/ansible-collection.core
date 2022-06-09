@@ -5,7 +5,7 @@
 Stolostron.Core
 ===============
 
-Collection version 0.0.1-beta
+Collection version 0.0.1-alpha.1
 
 .. toctree::
     :maxdepth: 1
