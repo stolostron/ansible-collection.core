@@ -89,7 +89,7 @@ jobs:
       - name: Create a Unique Cluster Name (<64 Characters)
         env:
           COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
-        run: echo "CLUSTER_NAME=test-${COMMIT_SHA:0:19}-$(uuidgen)" >> $GITHUB_ENV
+        run: echo "CLUSTER_NAME=test-${COMMIT_SHA:0:7}-$(uuidgen | cut -c1-8)" >> $GITHUB_ENV
 
       - name: Create managedcluster
         run: |
