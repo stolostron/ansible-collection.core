@@ -3,7 +3,7 @@
 
 This collection includes modules and plugins for driving Red Hat Advanced Cluster Management for Kubernetes functionality from Ansible Playbooks.
 
-<!-- Nothing past the blurb is shown without opening full README -->
+<!-- Nothing past the blurb is shown without opening full README --> 
 
 ## Prerequisites
 
