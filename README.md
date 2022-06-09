@@ -65,7 +65,7 @@ You can also include it in a `requirements.yml` file and install it via `ansible
 ---
 collections:
   - name: stolostron.core
-    version: 0.0.1-beta
+    version: 0.0.1-alpha.1
 ```
 
 ### Using the `stolostron.core` Collection in your playbooks
