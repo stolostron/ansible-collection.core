@@ -92,15 +92,34 @@ except ImportError as e:
                           'exception': e}
 
 
-def get_hub_proxy_route(hub_client, ocm_namespace: str):
-    route_api = hub_client.resources.get(
-        api_version="route.openshift.io/v1", kind="Route")
-    try:
-        route = route_api.get(
-            name='cluster-proxy-addon-user', namespace=ocm_namespace)
-    except NotFoundError:
-        return None
-    return route.spec.host
+def get_hub_proxy_route(hub_client: str):
+    # try to get cluster-proxy-addon-user route from mce_namespace
+    mce_namespace = get_mce_install_namespace(hub_client)
+    if mce_namespace:
+        route_api = hub_client.resources.get(
+            api_version="route.openshift.io/v1",
+            kind="Route",
+        )
+        try:
+            route = route_api.get(namespace=mce_namespace, name="cluster-proxy-addon-user")
+            return route.spec.host
+        except NotFoundError:
+            pass
+
+    # if not found, try to get cluster-proxy-addon-user route from ocm_namespace
+    ocm_namespace = get_ocm_install_namespace(hub_client)
+    if ocm_namespace:
+        route_api = hub_client.resources.get(
+            api_version="route.openshift.io/v1",
+            kind="Route",
+        )
+        try:
+            route = route_api.get(namespace=ocm_namespace, name="cluster-proxy-addon-user")
+            return route.spec.host
+        except NotFoundError:
+            pass
+
+    return None
 
 
 def wait_for_proxy_route_available(url, timeout=60):
@@ -130,6 +149,19 @@ def get_ocm_install_namespace(hub_client):
         return None
     mch = mch_list.items[0]
     return mch.metadata.namespace
+
+
+def get_mce_install_namespace(hub_client):
+    mce_api = hub_client.resources.get(
+        api_version="multicluster.openshift.io/v1",
+        kind="MultiClusterEngine",
+    )
+
+    mce_list = mce_api.get()
+    if len(mce_list.get('items', [])) != 1:
+        return None
+    mce = mce_list.items[0]
+    return mce.spec.targetNamespace
 
 
 def execute_module(module: AnsibleModule):
@@ -162,11 +194,7 @@ def execute_module(module: AnsibleModule):
         module.fail_json(
             msg=f'failed to check addon: {addon_name} of {managed_cluster_name} is not available')
 
-    ocm_namespace = get_ocm_install_namespace(hub_client)
-    if ocm_namespace is None:
-        module.fail_json(msg="failed to detect ocm namespace")
-
-    hub_proxy_url = get_hub_proxy_route(hub_client, ocm_namespace)
+    hub_proxy_url = get_hub_proxy_route(hub_client)
     if hub_proxy_url == "" or hub_proxy_url is None:
         module.fail_json(msg="failed to get hub proxy url")
 
