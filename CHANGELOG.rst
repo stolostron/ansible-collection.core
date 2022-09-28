@@ -23,3 +23,11 @@ New Modules
 - stolostron.core.managed_serviceaccount_rbac - Setup a serviceaccount on a managedcluster with the specified RBAC permission.
 - stolostron.core.managedcluster_addon - Enable/Disable an addon on a managedcluster.
 - stolostron.core.ocm_managedcluster - Fetch ocm managedclusters, and group clusters by labels.
+
+v0.0.2
+======
+
+Release Summary
+---------------
+
+Update stolostron.core.cluster_proxy to be compatible with Red Hat Advanced Cluster Management for Kubernetes version 2.6
