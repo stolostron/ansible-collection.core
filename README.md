@@ -61,7 +61,6 @@ You can also include it in a `requirements.yml` file and install it via `ansible
 ---
 collections:
   - name: stolostron.core
-    version: 0.0.1
 ```
 
 ### Using the `stolostron.core` Collection in your playbooks
@@ -85,7 +84,7 @@ tasks:
 
 For documentation on how to use individual modules and other content included in this collection, please see the links in the 'Included content' section earlier in this README.
 
-A robust example utilizing the `stolostron.core` collection is available in the [acm-ansible-collection-demo](https://github.com/stolostron/acm-ansible-collection-demo/tree/v0.0.1) GitHub repository.
+A robust example utilizing the `stolostron.core` collection is available in the [acm-ansible-collection-demo](https://github.com/stolostron/acm-ansible-collection-demo) GitHub repository.
 
 ## Development
 
