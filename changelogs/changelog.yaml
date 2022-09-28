@@ -29,3 +29,9 @@ releases:
       name: ocm_managedcluster
       namespace: ''
     release_date: '2022-04-06'
+  
+  0.0.2:
+    changes:
+      release_summary: 'Fix ccluster_proxy addon to be compatible with ACM 2.6
+
+        '
