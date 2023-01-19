@@ -17,6 +17,7 @@ Tested with Red Hat Advanced Cluster Management for Kubernetes version 2.5. All 
 
 Tested with stable versions of Ansible 2.10, Ansible 2.11, and Ansible 2.12. Ansible versions before 2.10 are not supported.
 
+
 ## Python support
 
 Tested with Python 3.6, Python 3.7, Python 3.8, and Python 3.9. Python versions before 3.6 are not supported.
