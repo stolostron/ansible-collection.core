@@ -43,6 +43,7 @@ Name | Description
 [stolostron.core.managedcluster_addon](https://github.com/stolostron/ansible-collection.core/blob/main/docs/managedcluster_addon_module.rst)| Use managedcluster_addon to enable/disable an addon on a managedcluster.
 [stolostron.core.ocm_managedcluster](https://github.com/stolostron/ansible-collection.core/blob/main/docs/ocm_managedcluster_inventory.rst)| Fetch ocm managedclusters, and group clusters by labels. Hub cluster information will be stored in the "hub" group.
 [stolostron.core.cluster_management_addon](https://github.com/stolostron/ansible-collection.core/blob/main/docs/cluster_management_addon_module.rst)| Use cluster_management_addon to enable/disable a feature on the hub. Users can only install an addon on managed clusters if the feature of that addon is enabled. This plugin will need access to the Multicloudhub CR, and it enables/disables available features by updating the corresponding fields in the CR.
+[stolostron.core.managedcluster_info](https://github.com/stolostron/ansible-collection.core/blob/main/docs/managedcluster_info_module.rst)| Use managedcluster_info to retrieve information about one or more managed clusters from the hub.
 <!--end collection content-->
 
 ## Installation and Usage

@@ -29,6 +29,7 @@ Modules
 * :ref:`managed_serviceaccount <ansible_collections.stolostron.core.managed_serviceaccount_module>` -- managed serviceaccount
 * :ref:`managed_serviceaccount_rbac <ansible_collections.stolostron.core.managed_serviceaccount_rbac_module>` -- managed-serviceaccount RBAC
 * :ref:`managedcluster_addon <ansible_collections.stolostron.core.managedcluster_addon_module>` -- managed cluster addon
+* :ref:`managedcluster_info <ansible_collections.stolostron.core.managedcluster_info_module>` -- Retrieve information about one or more managed clusters from the hub
 
 
 .. seealso::
