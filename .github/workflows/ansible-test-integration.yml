@@ -27,8 +27,8 @@ jobs:
         python:
           # - '3.6'
           # - '3.7'
-          - '3.8'
-          # - '3.9'
+          # - '3.8'
+          - '3.9'
           # - '3.10'
         exclude:
           # Because ansible-test doesn't support Python 3.9 for Ansible 2.9
