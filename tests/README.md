@@ -32,7 +32,7 @@ Use the following steps to run integration tests:
 1. [Optional] Install dependencies if not installed before:
    ```
     pip install -r tests/integration/requirements.txt
-    ansible-galaxy install -r tests/integration/requirements.yml
+    # ansible-galaxy install -r tests/integration/requirements.yml
    ```
 2. Fill in the test variables:
    ```
