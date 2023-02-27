@@ -1,0 +1,165 @@
+name: Integration Test
+on:
+  # Run integration tests against all Pull Requests
+  workflow_dispatch:
+  pull_request_target:
+    branches: [ main, release-* ]
+env:
+  NAMESPACE: stolostron
+  COLLECTION_NAME: core
+
+jobs:
+  integration:
+    env:
+      CLUSTER_KUBECONFIG: /tmp/import-kubeconfig
+      HUB_KUBECONFIG: /tmp/hub-kubeconfig
+    runs-on: ubuntu-latest
+    environment: integration-test
+    name: I (Ⓐ${{ matrix.ansible }}+py${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        ansible:
+          # - stable-2.9 # Only if your collection supports Ansible 2.9
+          - stable-2.10
+          # - stable-2.11
+          # - stable-2.12
+          # - devel
+        python:
+          # - '3.6'
+          # - '3.7'
+          # - '3.8'
+          - '3.9'
+          # - '3.10'
+        exclude:
+          # Because ansible-test doesn't support Python 3.9 for Ansible 2.9
+          # and Python 3.10 is supported in 2.12 or later.
+          # - ansible: stable-2.9
+          #   python: '3.9'
+          # - ansible: stable-2.9
+          #   python: '3.10'
+          - ansible: stable-2.10
+            python: '3.10'
+          # - ansible: stable-2.11
+          #   python: '3.10'
+            
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          # it is just required to run that once as "ansible-test integration" in the docker image
+          # will run on all python versions it supports.
+          python-version: ${{ matrix.python }}
+      
+      - name: Install ansible-base (${{ matrix.ansible }})
+        run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+      
+      # we will not run in docker mode, so we have to manually install dependencies
+      - name: Install python requirements
+        working-directory: ./ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
+        run: |
+          pip install -r tests/integration/requirements.txt
+      
+      # OPTIONAL If your integration test requires Python libraries or modules from other collections
+      # Install them like this
+      - name: Install collection dependencies
+        run: |
+          ansible-galaxy collection install kubernetes.core -p .
+
+      - name: Setup the hub kubeconfig
+        env:
+          HUB_KUBECONFIG_BASE64: ${{ secrets.HUB_KUBECONFIG_BASE64 }}
+        run: |
+          echo $HUB_KUBECONFIG_BASE64 | base64 --decode > ${HUB_KUBECONFIG}
+
+      # - name: Create a KinD cluster
+      #   env:
+      #     KUBECONFIG: ${{ env.CLUSTER_KUBECONFIG }}
+      #   uses: engineerd/setup-kind@v0.5.0
+      #   with:
+      #     version: "v0.11.1"
+      
+      # - name: Create a Unique Cluster Name (<64 Characters)
+      #   env:
+      #     COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+      #   run: echo "CLUSTER_NAME=test-${COMMIT_SHA:0:7}-$(uuidgen | cut -c1-8)" >> $GITHUB_ENV
+
+      # - name: Create managedcluster
+      #   run: |
+      #     export KUBECONFIG=${HUB_KUBECONFIG}
+      #     kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+      #     echo
+      #     echo "creating namespace ${CLUSTER_NAME}"
+      #     # kubectl create ns ${CLUSTER_NAME}
+      #     # kubectl label namespace ${CLUSTER_NAME} cluster.open-cluster-management.io/managedCluster=${CLUSTER_NAME}
+      #     # kubectl label namespace ${CLUSTER_NAME} github-action-integration-test=true
+      #     echo "creating managedcluster ${CLUSTER_NAME}"
+      #     cat <<EOF | kubectl create -f -
+      #     apiVersion: cluster.open-cluster-management.io/v1
+      #     kind: ManagedCluster
+      #     metadata:
+      #       name: ${CLUSTER_NAME}
+      #       labels:
+      #         github-action-integration-test: "true"
+      #     spec:
+      #       hubAcceptsClient: true
+      #     EOF
+      #     for i in `seq 1 20`; do 
+      #       kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-import && break
+      #       sleep 6
+      #     done
+      #     kubectl get secret ${CLUSTER_NAME}-import -n ${CLUSTER_NAME} -o jsonpath={.data.crds\\.yaml} | base64 --decode > /tmp/klusterlet-crd.yaml
+      #     kubectl get secret ${CLUSTER_NAME}-import -n ${CLUSTER_NAME} -o jsonpath={.data.import\\.yaml} | base64 --decode > /tmp/import.yaml
+      #     export KUBECONFIG=${CLUSTER_KUBECONFIG}
+      #     kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+      #     echo
+      #     echo importing
+      #     kubectl apply -f /tmp/klusterlet-crd.yaml
+      #     sleep 2
+      #     kubectl apply -f /tmp/import.yaml
+      #     export KUBECONFIG=${HUB_KUBECONFIG}
+      #     kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+      #     echo
+      #     echo 'wait cluster to be online for 10 minutes'
+      #     kubectl wait --for=condition=ManagedClusterConditionAvailable managedcluster ${CLUSTER_NAME} --timeout=600s
+
+      # - name: Prepare integration test configs
+      #   working-directory: ./ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
+      #   run: |
+      #     cp tests/integration/integration_config.yml.sample tests/integration/integration_config.yml
+      #     sed -i "s/managedcluster_name:.*/managedcluster_name: ${CLUSTER_NAME}/g"  tests/integration/integration_config.yml
+      #     sed -i "s#hub_kubeconfig:.*#hub_kubeconfig: ${HUB_KUBECONFIG}#g"  tests/integration/integration_config.yml
+      #     cat tests/integration/integration_config.yml
+
+      # # Run the integration tests. 
+      # # Not in docker because we will need access of the hub_kubeconfig file.
+      # - name: Run integration test
+      #   run: ansible-test integration --color --retry-on-error
+      #   working-directory: ./ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
+
+      # # ansible-test support producing code coverage date
+      # # - name: Generate coverage report
+      # #   run: ansible-test coverage xml -v --requirements --group-by command --group-by version
+      # #   working-directory: ./ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
+
+      # # See the reports at https://codecov.io/gh/GITHUBORG/REPONAME
+      # # - uses: codecov/codecov-action@v2
+      # #   with:
+      # #     fail_ci_if_error: false
+      # - name: Cleanup clusters
+      #   if: always()
+      #   run: |
+      #     export KUBECONFIG=${CLUSTER_KUBECONFIG}
+      #     kubectl get po -n open-cluster-management-agent
+      #     KUBECONFIG=${HUB_KUBECONFIG} kubectl get managedcluster ${CLUSTER_NAME}
+      #     KUBECONFIG=${HUB_KUBECONFIG} kubectl get managedclusteraddon -n ${CLUSTER_NAME}
+      #     KUBECONFIG=${HUB_KUBECONFIG} kubectl delete managedcluster ${CLUSTER_NAME} --wait=false
+        
