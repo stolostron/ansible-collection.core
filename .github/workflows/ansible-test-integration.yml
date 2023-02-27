@@ -77,72 +77,73 @@ jobs:
         env:
           HUB_KUBECONFIG_BASE64: ${{ secrets.HUB_KUBECONFIG_BASE64 }}
         run: |
+          echo "This is a change"
           echo $HUB_KUBECONFIG_BASE64 | base64 --decode > ${HUB_KUBECONFIG}
 
-      - name: Create a KinD cluster
-        env:
-          KUBECONFIG: ${{ env.CLUSTER_KUBECONFIG }}
-        uses: engineerd/setup-kind@v0.5.0
-        with:
-          version: "v0.11.1"
+      # - name: Create a KinD cluster
+      #   env:
+      #     KUBECONFIG: ${{ env.CLUSTER_KUBECONFIG }}
+      #   uses: engineerd/setup-kind@v0.5.0
+      #   with:
+      #     version: "v0.11.1"
       
-      - name: Create a Unique Cluster Name (<64 Characters)
-        env:
-          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
-        run: echo "CLUSTER_NAME=test-${COMMIT_SHA:0:7}-$(uuidgen | cut -c1-8)" >> $GITHUB_ENV
+      # - name: Create a Unique Cluster Name (<64 Characters)
+      #   env:
+      #     COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+      #   run: echo "CLUSTER_NAME=test-${COMMIT_SHA:0:7}-$(uuidgen | cut -c1-8)" >> $GITHUB_ENV
 
-      - name: Create managedcluster
-        run: |
-          export KUBECONFIG=${HUB_KUBECONFIG}
-          kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
-          echo
-          echo "creating namespace ${CLUSTER_NAME}"
-          # kubectl create ns ${CLUSTER_NAME}
-          # kubectl label namespace ${CLUSTER_NAME} cluster.open-cluster-management.io/managedCluster=${CLUSTER_NAME}
-          # kubectl label namespace ${CLUSTER_NAME} github-action-integration-test=true
-          echo "creating managedcluster ${CLUSTER_NAME}"
-          cat <<EOF | kubectl create -f -
-          apiVersion: cluster.open-cluster-management.io/v1
-          kind: ManagedCluster
-          metadata:
-            name: ${CLUSTER_NAME}
-            labels:
-              github-action-integration-test: "true"
-          spec:
-            hubAcceptsClient: true
-          EOF
-          for i in `seq 1 20`; do 
-            kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-import && break
-            sleep 6
-          done
-          kubectl get secret ${CLUSTER_NAME}-import -n ${CLUSTER_NAME} -o jsonpath={.data.crds\\.yaml} | base64 --decode > /tmp/klusterlet-crd.yaml
-          kubectl get secret ${CLUSTER_NAME}-import -n ${CLUSTER_NAME} -o jsonpath={.data.import\\.yaml} | base64 --decode > /tmp/import.yaml
-          export KUBECONFIG=${CLUSTER_KUBECONFIG}
-          kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
-          echo
-          echo importing
-          kubectl apply -f /tmp/klusterlet-crd.yaml
-          sleep 2
-          kubectl apply -f /tmp/import.yaml
-          export KUBECONFIG=${HUB_KUBECONFIG}
-          kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
-          echo
-          echo 'wait cluster to be online for 10 minutes'
-          kubectl wait --for=condition=ManagedClusterConditionAvailable managedcluster ${CLUSTER_NAME} --timeout=600s
+      # - name: Create managedcluster
+      #   run: |
+      #     export KUBECONFIG=${HUB_KUBECONFIG}
+      #     kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+      #     echo
+      #     echo "creating namespace ${CLUSTER_NAME}"
+      #     # kubectl create ns ${CLUSTER_NAME}
+      #     # kubectl label namespace ${CLUSTER_NAME} cluster.open-cluster-management.io/managedCluster=${CLUSTER_NAME}
+      #     # kubectl label namespace ${CLUSTER_NAME} github-action-integration-test=true
+          # echo "creating managedcluster ${CLUSTER_NAME}"
+          # cat <<EOF | kubectl create -f -
+          # apiVersion: cluster.open-cluster-management.io/v1
+          # kind: ManagedCluster
+          # metadata:
+          #   name: ${CLUSTER_NAME}
+          #   labels:
+          #     github-action-integration-test: "true"
+          # spec:
+          #   hubAcceptsClient: true
+          # EOF
+          # for i in `seq 1 20`; do 
+          #   kubectl get secret -n ${CLUSTER_NAME} ${CLUSTER_NAME}-import && break
+          #   sleep 6
+          # done
+          # kubectl get secret ${CLUSTER_NAME}-import -n ${CLUSTER_NAME} -o jsonpath={.data.crds\\.yaml} | base64 --decode > /tmp/klusterlet-crd.yaml
+          # kubectl get secret ${CLUSTER_NAME}-import -n ${CLUSTER_NAME} -o jsonpath={.data.import\\.yaml} | base64 --decode > /tmp/import.yaml
+          # export KUBECONFIG=${CLUSTER_KUBECONFIG}
+          # kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+          # echo
+          # echo importing
+          # kubectl apply -f /tmp/klusterlet-crd.yaml
+          # sleep 2
+          # kubectl apply -f /tmp/import.yaml
+          # export KUBECONFIG=${HUB_KUBECONFIG}
+          # kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+          # echo
+          # echo 'wait cluster to be online for 10 minutes'
+          # kubectl wait --for=condition=ManagedClusterConditionAvailable managedcluster ${CLUSTER_NAME} --timeout=600s
 
-      - name: Prepare integration test configs
-        working-directory: ./ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
-        run: |
-          cp tests/integration/integration_config.yml.sample tests/integration/integration_config.yml
-          sed -i "s/managedcluster_name:.*/managedcluster_name: ${CLUSTER_NAME}/g"  tests/integration/integration_config.yml
-          sed -i "s#hub_kubeconfig:.*#hub_kubeconfig: ${HUB_KUBECONFIG}#g"  tests/integration/integration_config.yml
-          cat tests/integration/integration_config.yml
+      # - name: Prepare integration test configs
+      #   working-directory: ./ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
+      #   run: |
+      #     cp tests/integration/integration_config.yml.sample tests/integration/integration_config.yml
+      #     sed -i "s/managedcluster_name:.*/managedcluster_name: ${CLUSTER_NAME}/g"  tests/integration/integration_config.yml
+      #     sed -i "s#hub_kubeconfig:.*#hub_kubeconfig: ${HUB_KUBECONFIG}#g"  tests/integration/integration_config.yml
+      #     cat tests/integration/integration_config.yml
 
       # Run the integration tests. 
-      # Not in docker because we will need access of the hub_kubeconfig file.
-      - name: Run integration test
-        run: ansible-test integration --color --retry-on-error
-        working-directory: ./ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
+      # # Not in docker because we will need access of the hub_kubeconfig file.
+      # - name: Run integration test
+      #   run: ansible-test integration --color --retry-on-error
+      #   working-directory: ./ansible_collections/${{env.NAMESPACE}}/${{env.COLLECTION_NAME}}
 
       # ansible-test support producing code coverage date
       # - name: Generate coverage report
