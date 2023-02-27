@@ -1,4 +1,4 @@
-name: Integration Test
+name: Remove Integration Cluster
 on:
   # Run integration tests against all Pull Requests
   pull_request_target:
