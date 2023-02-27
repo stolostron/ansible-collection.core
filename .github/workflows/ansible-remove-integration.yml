@@ -1,7 +1,6 @@
 name: Integration Test
 on:
   # Run integration tests against all Pull Requests
-  workflow_dispatch:
   pull_request_target:
     branches: [ main, release-* ]
 env:
