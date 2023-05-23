@@ -17,6 +17,9 @@ description:
 - Fetch ocm managedclusters, and group clusters by labels.
 - Hub cluster information will be stored in the "hub" group.
 
+extends_documentation_fragment:
+- constructed
+- inventory_cache
 options:
     plugin:
         description: token that ensures this is a source file for the 'ocm' plugin.
@@ -74,7 +77,9 @@ except ImportError as e:
     IMP_ERR['k8s'] = {'error': traceback.format_exc(),
                       'exception': e}
 
-from ansible.plugins.inventory import BaseInventoryPlugin, Constructable, Cacheable
+from ansible.inventory.helpers import get_group_vars
+from ansible.plugins.inventory import BaseInventoryPlugin, Constructable, Cacheable, to_safe_group_name
+from ansible.utils.vars import combine_vars
 
 
 class OCMInventoryException(Exception):
@@ -97,6 +102,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
     def parse(self, inventory, loader, path, cache=True):
         super().parse(inventory, loader, path)
         cache_key = self._get_cache_prefix(path)
+        self.use_cache = cache and self.get_option('cache')
         self._read_config_data(path)
         self.setup(cache, cache_key)
 
@@ -148,7 +154,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                     raise OCMInventoryException(
                         "Expecting name of cluster_group to be defined."
                     )
-                group_name = cluster_group.get("name")
+                group_name = to_safe_group_name(cluster_group.get("name"))
                 if group_name == "" or group_name == "hub":
                     raise OCMInventoryException(
                         "Expecting group_name to be not empty, and it cannot be hub."
@@ -173,8 +179,37 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                         raise OCMInventoryException(
                             f"Expecting the host name {c.metadata.name} to be different from group name."
                         )
+
+                    hostvars = {'cluster_name': c.metadata.name,
+                                'client_config': dict(next(iter(c.spec.managedClusterClientConfigs or []), {})),
+                                'annotations': {k: v
+                                                for k, v in c.metadata.annotations
+                                                if not k.endswith('last-applied-configuration')},
+                                'labels': dict(c.metadata.labels)}
+
                     # add host will add an entry to the 'all' group
                     self.inventory.add_host(host_name)
                     self.inventory.add_child(group_name, host_name)
-                    self.inventory.set_variable(
-                        host_name, 'cluster_name', c.metadata.name)
+
+                    strict = self.get_option('strict', False)
+
+                    # Create composite vars
+                    self._set_composite_vars(self.get_option('compose'), hostvars, host_name, strict=strict)
+
+                    # Actually update inventory
+                    for k, v in hostvars.items() :
+                        self.inventory.set_variable(host_name, k, v)
+
+                    # Refetch host vars in case new ones have been created above
+                    hostvars = combine_vars(get_group_vars(self.inventory.hosts[host_name].get_groups()),
+                                            self.inventory.hosts[host_name].get_vars())
+                    if host_name in self._cache:  # adds facts if cache is active
+                        hostvars = combine_vars(hostvars, self._cache[host_name])
+
+                    # Constructed groups based on conditionals
+                    self._add_host_to_composed_groups(self.get_option('groups'), hostvars, host_name,
+                                                      strict=strict)
+
+                    # Constructed keyed_groups
+                    self._add_host_to_keyed_groups(self.get_option('keyed_groups'), hostvars, host_name,
+                                                   strict=strict)
